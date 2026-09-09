@@ -1,0 +1,36 @@
+<style>
+    /* Estilos del Menú - Colores VISANTIC */
+    .sidebar-nav { padding: 15px 10px; }
+    .sidebar-section { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #e2e8f0; }
+    .sidebar-section:last-child { border-bottom: none; }
+    .section-title { font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin: 10px 15px; padding-bottom: 0; display: block; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 15px; color: #1e293b; text-decoration: none; font-size: 14px; font-weight: 500; border-radius: 8px; margin-bottom: 2px; transition: all 0.2s; }
+    .nav-item:hover { background-color: #f8fafc; }
+    
+    /* Color de acento VISANTIC para el enlace activo */
+    .nav-item.active { 
+        background-color: #e0f2fe; 
+        color: #058EA6; 
+        font-weight: 700; 
+        border-left: 4px solid #058EA6; 
+    }
+    .nav-item.active i { color: #058EA6; }
+    
+    .logout-link { color: #dc2626; font-weight: 600; margin-top: 10px; }
+    .logout-link:hover { background-color: #fef2f2; }
+</style>
+
+<nav class="sidebar-nav">
+    <div class="sidebar-section">
+        <div class="section-title">Reportes</div>
+        <a href="reporte_semanal.html" class="nav-item" id="link-reporte-semanal"><i data-lucide="calendar-days"></i> Reporte Semanal</a>
+        <a href="reporte_semanal.html" class="nav-item" id="link-guardados"><i data-lucide="save"></i> Guardados</a>
+        <a href="reporte_semanal.html" class="nav-item" id="link-realizados"><i data-lucide="check-circle"></i> Realizados</a>
+    </div>
+
+    <div class="sidebar-section">
+        <a href="index.html" class="nav-item logout-link" onclick="localStorage.clear(); sessionStorage.clear();">
+            <i data-lucide="log-out"></i> Cerrar Sesión
+        </a>
+    </div>
+</nav>
