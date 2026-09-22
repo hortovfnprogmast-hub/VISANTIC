@@ -22,10 +22,22 @@
 
 <nav class="sidebar-nav">
     <div class="sidebar-section">
-        <div class="section-title">Reportes</div>
-        <a href="reporte_semanal.html" class="nav-item" id="link-reporte-semanal"><i data-lucide="calendar-days"></i> Reporte Semanal</a>
-        <a href="reporte_semanal.html" class="nav-item" id="link-guardados"><i data-lucide="save"></i> Guardados</a>
-        <a href="reporte_semanal.html" class="nav-item" id="link-realizados"><i data-lucide="check-circle"></i> Realizados</a>
+        <div class="section-title">Mis Reportes</div>
+        <a href="reporte_semanal.html?tab=nuevo" class="nav-item" id="link-reporte-semanal"><i data-lucide="calendar-days"></i> Reporte Semanal</a>
+        <a href="reporte_semanal.html?tab=guardados" class="nav-item" id="link-guardados"><i data-lucide="save"></i> Guardados</a>
+        <a href="reporte_semanal.html?tab=realizados" class="nav-item" id="link-realizados"><i data-lucide="check-circle"></i> Realizados</a>
+    </div>
+
+    <div class="sidebar-section">
+        <div class="section-title">Administración</div>
+        <a href="proyectos.html" class="nav-item" id="link-proyectos"><i data-lucide="folders"></i> Proyectos</a>
+        <a href="proyectonuevo.html" class="nav-item" id="link-nuevo-proyecto"><i data-lucide="folder-plus"></i> Nuevo Proyecto</a>
+    </div>
+
+    <div class="sidebar-section">
+        <div class="section-title">Reportes de la Compañía</div>
+        <a href="reporte_semanal.html?tab=guardados&scope=global" class="nav-item" id="link-global-guardados"><i data-lucide="save"></i> Guardados Global</a>
+        <a href="reporte_semanal.html?tab=realizados&scope=global" class="nav-item" id="link-global-realizados"><i data-lucide="check-circle"></i> Realizados Global</a>
     </div>
 
     <div class="sidebar-section">
