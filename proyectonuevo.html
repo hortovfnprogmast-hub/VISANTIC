@@ -8,6 +8,7 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
     <style>
         :root { --primary-blue: #058EA6; --primary-dark: #046978; --bg-color: #f8fafc; --text-main: #1e293b; --text-muted: #64748b; --border-color: #e2e8f0; --success: #10b981; --danger: #dc2626; }
         body { margin: 0; font-family: 'Inter', sans-serif; background-color: var(--bg-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -32,6 +33,9 @@
         @media (min-width: 768px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
         .btn-guardar { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 15px 20px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; background: var(--primary-blue); color: white; border: none; width: 100%; max-width: 300px; margin: 0 auto; }
         .btn-guardar:hover { background: var(--primary-dark); }
+        .photo-upload-area { border: 2px dashed #d1d5db; border-radius: 8px; background: #f9fafb; padding: 30px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .photo-upload-area:hover { border-color: var(--primary-blue); background: #f0f9ff; }
+        .photo-preview { display: none; width: 100%; max-height: 300px; object-fit: cover; border-radius: 8px; margin-top: 15px; }
         #custom-alert { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
         .modal-card-alert { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 400px; text-align: center; }
         #alert-btn { width: 100%; padding: 12px; border-radius: 8px; border: none; color: white; background: var(--primary-blue); font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 15px; }
@@ -82,25 +86,21 @@
                                 <input type="date" class="form-input" id="fecha_termino" required>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="grid-2">
-                            <div class="form-group">
-                                <label class="form-label">Tipo de Documento</label>
-                                <select class="form-select" id="tipo_doc" required>
-                                    <option value="">Selecciona...</option>
-                                    <option value="Numero de contrato">Número de contrato</option>
-                                    <option value="Orden de compra">Orden de compra</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Número / Folio</label>
-                                <input type="text" class="form-input" id="numero_doc" placeholder="Ej. CT-2023-001" required>
-                            </div>
+                    <div class="form-card">
+                        <h3 class="section-title-form"><i data-lucide="image"></i> Fotografía del Proyecto</h3>
+                        <input type="file" id="file_portada" accept="image/*" style="display:none" onchange="previewPhoto(event)">
+                        <div class="photo-upload-area" onclick="document.getElementById('file_portada').click()">
+                            <i data-lucide="upload-cloud" style="color: var(--text-muted); width: 40px; height: 40px;"></i>
+                            <p style="margin: 10px 0 0 0; font-weight: 600; color: var(--text-main);">Haz clic para subir una foto</p>
+                            <p style="margin: 5px 0 0 0; font-size: 12px; color: var(--text-muted);">Esta será la imagen principal del proyecto</p>
                         </div>
+                        <img id="preview_img" class="photo-preview" alt="Vista previa">
                     </div>
 
                     <div style="display: flex; justify-content: center; padding-bottom: 40px;">
-                        <button type="submit" class="btn-guardar"><i data-lucide="save"></i> Guardar Proyecto</button>
+                        <button type="submit" class="btn-guardar" id="btnGuardar"><i data-lucide="save"></i> Guardar Proyecto</button>
                     </div>
                 </form>
             </div>
@@ -126,6 +126,7 @@
         };
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.firestore();
+        const storage = firebase.storage();
 
         document.addEventListener('DOMContentLoaded', () => {
             if(!localStorage.getItem('usuario')) { window.location.href = 'index.html'; return; }
@@ -146,27 +147,50 @@
         }
         function closeAlert() { document.getElementById('custom-alert').style.display = 'none'; }
 
+        let filePortada = null;
+        function previewPhoto(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('preview_img').src = e.target.result;
+                document.getElementById('preview_img').style.display = 'block';
+                filePortada = file;
+            };
+            reader.readAsDataURL(file);
+        }
+
         async function guardarProyecto(event) {
             event.preventDefault();
-            const btn = event.target.querySelector('button[type="submit"]');
-            btn.disabled = true; btn.innerText = "Guardando...";
+            const btn = document.getElementById('btnGuardar');
+            btn.disabled = true; btn.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Guardando...';
+            lucide.createIcons();
 
             try {
+                let urlPortada = "";
+                if (filePortada) {
+                    const storageRef = storage.ref();
+                    const fileRef = storageRef.child(`proyectos_portada/${Date.now()}_${filePortada.name}`);
+                    const snapshot = await fileRef.put(filePortada);
+                    urlPortada = await snapshot.ref.getDownloadURL();
+                }
+
                 await db.collection("proyectos").add({
                     cliente: document.getElementById('cliente').value,
                     proyecto: document.getElementById('proyecto').value,
                     fecha_inicio: document.getElementById('fecha_inicio').value,
                     fecha_termino: document.getElementById('fecha_termino').value,
-                    tipo_documento: document.getElementById('tipo_doc').value,
-                    numero_documento: document.getElementById('numero_doc').value,
+                    url_portada: urlPortada,
                     fecha_creacion: new Date().toISOString()
                 });
+                
                 showAlert("Éxito", "Proyecto guardado correctamente.");
                 setTimeout(() => window.location.href = 'proyectos.html', 1500);
             } catch (e) {
                 console.error(e);
                 showAlert("Error", "No se pudo guardar el proyecto.");
-                btn.disabled = false; btn.innerText = "Guardar Proyecto";
+                btn.disabled = false; btn.innerHTML = '<i data-lucide="save"></i> Guardar Proyecto';
+                lucide.createIcons();
             }
         }
     </script>
