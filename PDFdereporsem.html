@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte VISANTIC</title>
+    <style>
+        @page { size: A4; margin: 0; }
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; font-size: 12px; margin: 0; padding: 0; background-color: #555; color: #333; }
+        .page { width: 210mm; height: 297mm; background: white; margin: 20px auto; padding: 15mm; position: relative; box-shadow: 0 0 10px rgba(0,0,0,0.5); display: flex; flex-direction: column; page-break-after: always; }
+        .thick-divider { border-top: 8px solid #238294; margin: 12px 0; }
+        input[type="radio"] { accent-color: #238294; margin-right: 6px; vertical-align: middle; width: 14px; height: 14px; }
+        .header { display: flex; justify-content: space-between; align-items: stretch; margin-bottom: 10px; }
+        .header-left { display: flex; flex-direction: column; gap: 15px; }
+        .logo-container { display: flex; align-items: center; }
+        .info-fields { display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
+        .info-fields div { display: flex; align-items: center; }
+        .info-fields span { font-weight: bold; margin-left: 5px; }
+        .empty-box { width: 250px; border: 1px solid #238294; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .empty-box img { width: 100%; height: 100%; object-fit: cover; }
+        .report-title { text-align: center; font-weight: bold; font-size: 14px; letter-spacing: 1px; margin: 5px 0; }
+        .meta-row { display: flex; justify-content: space-between; padding: 0 5px; }
+        .meta-row div { display: flex; align-items: center; }
+        .meta-row span { font-weight: bold; margin-left: 5px; }
+        .work-front { display: flex; align-items: center; margin: 12px 0; padding-left: 5px; }
+        .work-front span { font-weight: bold; margin-left: 5px; }
+        .section-banner { background-color: #238294; color: white; padding: 3px 10px; display: flex; align-items: center; width: 46%; font-weight: bold; white-space: nowrap; margin-top: 15px; }
+        .text-area-box { border: 1px solid #238294; padding: 10px; width: 100%; color: #000; text-align: left; overflow-y: auto; }
+        .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 10px; }
+        .photo-grid img { width: 100%; height: 120px; object-fit: cover; border: 1px solid #ccc; }
+        .footer { margin-top: auto; width: 100%; display: flex; flex-direction: column; }
+        .footer-atentamente { text-align: center; font-size: 13px; font-weight: bold; color: #000; margin-bottom: 12px; }
+        .footer-banner { background-color: #238294; color: white; text-align: center; padding: 5px 0; font-size: 11px; letter-spacing: 0.5px; width: 100%; }
+        .footer-emision { text-align: right; font-size: 11px; color: #000; margin-top: 10px; font-weight: bold; }
+        @media print { body { background-color: white; } .page { margin: 0; box-shadow: none; width: 100%; height: 100%; } }
+    </style>
+</head>
+<body>
+
+<div class="page" id="pdf-page">
+    <!-- Encabezado -->
+    <div class="header">
+        <div class="header-left">
+            <div class="logo-container">
+                <img src="https://i.ibb.co/ymFHXQsN/LOGOTIPO.png" alt="VISANTIC" style="max-height: 65px; object-fit: contain;">
+            </div>
+            <div class="info-fields">
+                <div><input type="radio" checked> Cliente: <span id="pdf-cliente"></span></div>
+                <div><input type="radio" checked> Proyecto: <span id="pdf-proyecto"></span></div>
+                <div><input type="radio" checked> Numero de contrato / Orden de compra: <span id="pdf-contrato"></span></div>
+            </div>
+        </div>
+        <div class="empty-box" id="pdf-portada-box">
+            <!-- Aquí se inyecta la foto de portada del proyecto -->
+        </div>
+    </div>
+
+    <div class="thick-divider"></div>
+
+    <div class="report-title">REPORTE</div>
+
+    <div class="meta-row">
+        <div><input type="radio" checked> Fecha, hora: <span id="pdf-fecha"></span></div>
+        <div><input type="radio" checked> Número de reporte: <span id="pdf-folio"></span></div>
+    </div>
+
+    <div class="thick-divider"></div>
+
+    <!-- Frente de trabajo -->
+    <div class="work-front">
+        <input type="radio" checked> Frente de trabajo: <span id="pdf-frente"></span>
+    </div>
+    
+    <div class="section-banner">
+        <input type="radio" checked> Descripción de Actividades o Contingencias.
+    </div>
+    <div class="text-area-box" style="height: 80px;" id="pdf-descripcion">
+        <!-- Descripción rellenada aquí -->
+    </div>
+
+    <div class="section-banner">
+        <input type="radio" checked> Evidencia Fotográfica del Reporte.
+    </div>
+    <div class="text-area-box" style="height: 400px; padding: 0;">
+        <div class="photo-grid" id="pdf-fotos">
+            <!-- Fotos rellenadas aquí -->
+        </div>
+    </div>
+
+    <!-- Pie de página -->
+    <div class="footer">
+        <div class="footer-atentamente">Atentamente</div>
+        <div class="footer-banner">
+            VISANTIC S.A DE C.V . TODOS LOS DERECHOS RESERVADOS.
+        </div>
+        <div class="footer-emision">
+            El presente documento fue redactado y emitido: <span id="pdf-ubicacion"></span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Llenar el PDF con los datos que vienen del reporte
+    const urlParams = new URLSearchParams(window.location.search);
+    const isPreview = urlParams.get('preview') === 'true';
+    const dataKey = isPreview ? 'DatosPreviewPDF' : 'DatosReportePDF';
+    const reportData = JSON.parse(sessionStorage.getItem(dataKey) || '{}');
+
+    document.getElementById('pdf-cliente').innerText = reportData.cliente || '';
+    document.getElementById('pdf-proyecto').innerText = reportData.proyecto || '';
+    document.getElementById('pdf-contrato').innerText = reportData.contrato || '';
+    
+    if(reportData.url_portada) {
+        document.getElementById('pdf-portada-box').innerHTML = `<img src="${reportData.url_portada}" alt="Portada">`;
+    }
+
+    document.getElementById('pdf-fecha').innerText = reportData.fecha_hora || '';
+    document.getElementById('pdf-folio').innerText = reportData.folio || '';
+    document.getElementById('pdf-frente').innerText = reportData.frente_trabajo || '';
+    document.getElementById('pdf-descripcion').innerText = reportData.descripcion || '';
+    document.getElementById('pdf-ubicacion').innerText = reportData.ubicacion_gps || 'No disponible';
+
+    const grid = document.getElementById('pdf-fotos');
+    (reportData.fotos || []).forEach(foto => {
+        if(foto) {
+            const img = document.createElement('img');
+            img.src = foto;
+            grid.appendChild(img);
+        }
+    });
+
+    // Auto-imprimir si no es vista previa
+    if(!isPreview) {
+        setTimeout(() => window.print(), 1000);
+    }
+</script>
+</body>
+</html>
