@@ -10,7 +10,6 @@
         * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; font-size: 12px; margin: 0; padding: 0; background-color: #555; color: #333; }
         
-        /* Botones flotantes */
         .floating-buttons { position: fixed; top: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; z-index: 9999; }
         .btn-flotante { background: #058EA6; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-weight: bold; font-family: Arial, sans-serif; box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-decoration: none; font-size: 14px; }
         .btn-flotante.green { background: #10b981; }
@@ -21,7 +20,7 @@
         .header { display: flex; justify-content: space-between; align-items: stretch; margin-bottom: 10px; }
         .header-left { display: flex; flex-direction: column; gap: 15px; }
         .logo-container { display: flex; align-items: center; }
-        .info-fields { display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
+        .info-fields { display: flex; flex-direction: column; gap: 2px; font-size: 12px; } /* Espacio reducido aquí */
         .info-fields div { display: flex; align-items: center; }
         .info-fields span { font-weight: bold; margin-left: 5px; }
         .empty-box { width: 250px; border: 1px solid #238294; display: flex; align-items: center; justify-content: center; overflow: hidden; }
@@ -35,20 +34,23 @@
         .section-banner { background-color: #238294; color: white; padding: 3px 10px; display: flex; align-items: center; width: 46%; font-weight: bold; white-space: nowrap; margin-top: 15px; }
         .text-area-box { border: 1px solid #238294; padding: 10px; width: 100%; color: #000; text-align: left; overflow-y: auto; }
         
-        /* Grid de Fotos Dinámico */
         .photo-grid-container { height: 400px; padding: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         .photo-dynamic-grid { width: 100%; height: 100%; display: grid; gap: 10px; padding: 10px; }
         .photo-dynamic-grid img { width: 100%; height: 100%; object-fit: cover; border: 1px solid #ccc; }
 
-        .footer { margin-top: auto; width: 100%; display: flex; flex-direction: column; }
+        /* Pie de página ajustado */
+        .footer { margin-top: 15px; width: 100%; display: flex; flex-direction: column; align-items: center; }
+        .signature-block { text-align: center; margin-bottom: 15px; width: 100%; }
+        .signature-name { font-weight: bold; font-size: 13px; color: #000; margin-bottom: 35px; /* Espacio para firmar */ }
+        .signature-line { border-top: 1px solid #000; width: 250px; margin: 0 auto; }
         .footer-atentamente { text-align: center; font-size: 13px; font-weight: bold; color: #000; margin-bottom: 12px; }
         .footer-banner { background-color: #238294; color: white; text-align: center; padding: 5px 0; font-size: 11px; letter-spacing: 0.5px; width: 100%; }
-        .footer-emision { text-align: right; font-size: 11px; color: #000; margin-top: 10px; font-weight: bold; }
+        .footer-emision { text-align: right; font-size: 11px; color: #000; margin-top: 10px; font-weight: bold; width: 100%; }
         
         @media print {
             body { background-color: white; }
             .page { margin: 0; box-shadow: none; width: 100%; height: 100%; }
-            .floating-buttons { display: none; } /* Ocultar botones al imprimir */
+            .floating-buttons { display: none; }
         }
     </style>
 </head>
@@ -100,6 +102,10 @@
         </div>
 
         <div class="footer">
+            <div class="signature-block">
+                <div class="signature-name" id="pdf-residente"></div>
+                <div class="signature-line"></div>
+            </div>
             <div class="footer-atentamente">Atentamente</div>
             <div class="footer-banner">VISANTIC S.A DE C.V . TODOS LOS DERECHOS RESERVADOS.</div>
             <div class="footer-emision">El presente documento fue redactado y emitido: <span id="pdf-ubicacion"></span></div>
@@ -112,6 +118,7 @@
         document.getElementById('pdf-cliente').innerText = reportData.cliente || '';
         document.getElementById('pdf-proyecto').innerText = reportData.proyecto || '';
         document.getElementById('pdf-contrato').innerText = reportData.contrato || '';
+        document.getElementById('pdf-residente').innerText = reportData.residente_nombre || '';
         
         if(reportData.url_portada) {
             document.getElementById('pdf-portada-box').innerHTML = `<img src="${reportData.url_portada}" alt="Portada">`;
@@ -123,28 +130,16 @@
         document.getElementById('pdf-descripcion').innerText = reportData.descripcion || '';
         document.getElementById('pdf-ubicacion').innerText = reportData.ubicacion_gps || 'No disponible';
 
-        // LÓGICA DINÁMICA DE FOTOS
         const grid = document.getElementById('pdf-fotos');
         const fotos = (reportData.fotos || []).filter(f => f !== null);
         const count = fotos.length;
 
         if (count > 0) {
-            if (count === 1) {
-                grid.style.gridTemplateColumns = '1fr';
-                grid.style.gridTemplateRows = '1fr';
-            } else if (count === 2) {
-                grid.style.gridTemplateColumns = '1fr 1fr';
-                grid.style.gridTemplateRows = '1fr';
-            } else if (count === 3) {
-                grid.style.gridTemplateColumns = '1fr 1fr 1fr';
-                grid.style.gridTemplateRows = '1fr';
-            } else if (count === 4) {
-                grid.style.gridTemplateColumns = '1fr 1fr';
-                grid.style.gridTemplateRows = '1fr 1fr';
-            } else if (count === 6 || count === 5) {
-                grid.style.gridTemplateColumns = '1fr 1fr 1fr';
-                grid.style.gridTemplateRows = '1fr 1fr';
-            }
+            if (count === 1) { grid.style.gridTemplateColumns = '1fr'; grid.style.gridTemplateRows = '1fr'; } 
+            else if (count === 2) { grid.style.gridTemplateColumns = '1fr 1fr'; grid.style.gridTemplateRows = '1fr'; } 
+            else if (count === 3) { grid.style.gridTemplateColumns = '1fr 1fr 1fr'; grid.style.gridTemplateRows = '1fr'; } 
+            else if (count === 4) { grid.style.gridTemplateColumns = '1fr 1fr'; grid.style.gridTemplateRows = '1fr 1fr'; } 
+            else if (count >= 5) { grid.style.gridTemplateColumns = '1fr 1fr 1fr'; grid.style.gridTemplateRows = '1fr 1fr'; }
 
             fotos.forEach(foto => {
                 const img = document.createElement('img');
