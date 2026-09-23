@@ -11,7 +11,7 @@
     <style>
         :root { --primary-blue: #058EA6; --light-blue: #e0f2fe; --bg-color: #f8fafc; --text-main: #1e293b; --text-muted: #64748b; --border-color: #e2e8f0; --danger: #dc2626; }
         body { margin: 0; font-family: 'Inter', sans-serif; background-color: var(--bg-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: white; border-bottom: 1px solid var(--border-color); z-index: 50; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: white; border-bottom: 1px solid var(--border-color); z-index: 50; position: sticky; top: 0; }
         .header-left { display: flex; align-items: center; gap: 15px; }
         .menu-btn { background: none; border: none; cursor: pointer; color: var(--text-main); }
         .header-title { margin: 0; font-size: 15px; font-weight: 700; color: var(--primary-blue); }
@@ -96,7 +96,8 @@
             if(!localStorage.getItem('usuario')) { window.location.href = 'index.html'; return; }
             document.getElementById('user-initial').innerText = (localStorage.getItem('nombre') || 'U').charAt(0).toUpperCase();
 
-            fetch('menu.html?v=4').then(res => res.text()).then(html => {
+            // El "v=5" asegura que el navegador no use un menú guardado en caché
+            fetch('menu.html?v=5').then(res => res.text()).then(html => {
                 document.getElementById('sidebar').innerHTML = html; lucide.createIcons();
                 document.getElementById('link-proyectos')?.classList.add('active');
             });
@@ -138,7 +139,9 @@
                             <a href="reporte_semanal.html?tab=realizados&scope=global&proyecto=${encodeURIComponent(p.proyecto)}" class="badge-count">${numRep} Reportes</a>
                         </td>
                         <td style="text-align: center;">
-                            <a href="proyectonuevo.html?edit=${p.id}" class="btn-edit-red"><i data-lucide="edit"></i> Editar</a>
+                            <a href="proyectonuevo.html?edit=${p.id}" class="btn-edit-red">
+                                <i data-lucide="edit"></i> Editar
+                            </a>
                         </td>
                     `;
                     tbody.appendChild(tr);
