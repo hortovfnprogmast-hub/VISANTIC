@@ -18,7 +18,7 @@
         .menu-btn { background: none; border: none; cursor: pointer; color: var(--text-main); }
         .header-title { margin: 0; font-size: 15px; font-weight: 700; color: var(--primary-blue); }
         .header-right { display: flex; align-items: center; gap: 12px; }
-        .user-name-top { font-weight: 800; color: var(--primary-blue); font-size: 15px; text-transform: uppercase; }
+        .user-name-top { font-weight: 800; color: var(--primary-blue); font-size: 15px; text-transform: uppercase; white-space: nowrap; }
         .user-initial { width: 35px; height: 35px; border-radius: 50%; background-color: var(--primary-blue); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
         .user-dropdown { position: absolute; top: 60px; right: 15px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid var(--border-color); width: 220px; z-index: 1000; display: none; overflow: hidden; }
         .user-dropdown.show { display: block; }
@@ -307,7 +307,7 @@
             }
         });
 
-        // LÓGICA DE FOTOS Y CÁMARA RESTAURADA
+        // LÓGICA DE FOTOS Y CÁMARA CORREGIDA
         function triggerFile() { if(fotos.filter(f => f !== null).length < 6) document.getElementById('fileInputGlobal').click(); else showAlert("Límite", "Máximo 6 fotos.", false); }
         function processFile(i) {
             if(!i.files || i.files.length === 0) return;
@@ -320,9 +320,9 @@
                     if(w > m || h > m) { if(w > h) { h = (h/w)*m; w = m; } else { w = (w/h)*m; h = m; } }
                     c.width = w; c.height = h;
                     c.getContext('2d').drawImage(img, 0, 0, w, h);
-                    const f = c.toDataURL('image/jpeg', 0.7);
-                    const s = fotos.findIndex(f => f === null);
-                    if(s > -1) { fotos[s] = f; renderSlots(); }
+                    const dataUrl = c.toDataURL('image/jpeg', 0.7);
+                    const emptyIndex = fotos.findIndex(slot => slot === null);
+                    if(emptyIndex > -1) { fotos[emptyIndex] = dataUrl; renderSlots(); }
                     i.value = '';
                 };
                 img.src = e.target.result;
@@ -351,8 +351,9 @@
             const x = c.getContext('2d');
             if(currentFacingMode === 'user') { x.translate(c.width, 0); x.scale(-1, 1); }
             x.drawImage(v, 0, 0, c.width, c.height); x.setTransform(1, 0, 0, 1, 0, 0);
-            const s = fotos.findIndex(f => f === null);
-            if(s > -1) { fotos[s] = c.toDataURL('image/jpeg', 0.8); renderSlots(); }
+            const dataUrl = c.toDataURL('image/jpeg', 0.8);
+            const emptyIndex = fotos.findIndex(slot => slot === null);
+            if(emptyIndex > -1) { fotos[emptyIndex] = dataUrl; renderSlots(); }
             closeCamera();
         }
 
