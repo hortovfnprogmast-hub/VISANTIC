@@ -78,6 +78,11 @@
                             <input type="text" class="form-input" id="proyecto" placeholder="Nombre del proyecto" required>
                         </div>
 
+                        <div class="form-group">
+                            <label class="form-label">Numero de contrato / Orden de compra</label>
+                            <input type="text" class="form-input" id="numero_documento" placeholder="Ej. CT-2023-001" required>
+                        </div>
+
                         <div class="grid-2">
                             <div class="form-group">
                                 <label class="form-label">Fecha de Inicio</label>
@@ -210,12 +215,12 @@
                     urlPortada = await snapshot.ref.getDownloadURL();
                 }
 
-                // Formatear la dirección completa
                 const direccionCompleta = `${document.getElementById('calle').value} ${document.getElementById('numero').value}, ${document.getElementById('colonia').value}, C.P. ${document.getElementById('cp').value}, ${document.getElementById('ciudad').value}, ${document.getElementById('estado').value}`;
 
                 await db.collection("proyectos").add({
                     cliente: document.getElementById('cliente').value,
                     proyecto: document.getElementById('proyecto').value,
+                    numero_documento: document.getElementById('numero_documento').value,
                     fecha_inicio: document.getElementById('fecha_inicio').value,
                     fecha_termino: document.getElementById('fecha_termino').value,
                     calle: document.getElementById('calle').value,
@@ -225,7 +230,7 @@
                     ciudad: document.getElementById('ciudad').value,
                     estado: document.getElementById('estado').value,
                     direccion_completa: direccionCompleta,
-                    folio_contador: 0, // Inicializamos el contador de folios para este proyecto
+                    folio_contador: 0,
                     url_portada: urlPortada,
                     fecha_creacion: new Date().toISOString()
                 });
