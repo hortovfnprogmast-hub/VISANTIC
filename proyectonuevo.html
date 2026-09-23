@@ -16,6 +16,8 @@
         .header-left { display: flex; align-items: center; gap: 15px; }
         .menu-btn { background: none; border: none; cursor: pointer; color: var(--text-main); }
         .header-title { margin: 0; font-size: 15px; font-weight: 700; color: var(--primary-blue); }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .user-name-top { font-weight: 700; color: var(--primary-blue); font-size: 14px; }
         .user-initial { width: 35px; height: 35px; border-radius: 50%; background-color: var(--primary-blue); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
         .main-layout { display: flex; flex: 1; overflow: hidden; }
         .sidebar { width: 260px; background: white; border-right: 1px solid var(--border-color); overflow-y: auto; transition: transform 0.3s ease; display: flex; flex-direction: column; position: fixed; height: calc(100vh - 60px); z-index: 40; }
@@ -51,7 +53,10 @@
             <img src="https://i.ibb.co/8ng1078m/LOGOTIPO.png" alt="Logo VISANTIC" style="height: 35px; object-fit: contain;">
             <h1 class="header-title" id="header-title-text">Alta de Proyecto</h1>
         </div>
-        <div class="user-initial" id="user-initial">U</div>
+        <div class="header-right">
+            <span class="user-name-top" id="header-username">Cargando...</span>
+            <div class="user-initial" id="user-initial">U</div>
+        </div>
     </header>
 
     <div class="main-layout">
@@ -171,17 +176,37 @@
         let filePortada = null;
         let editId = null;
 
+        function configurarPermisosMenu() {
+            const privilegio = localStorage.getItem('privilegio');
+            const menuMisReportes = document.getElementById('menu-mis-reportes');
+            const menuAdmin = document.getElementById('menu-administracion');
+            const menuGlobal = document.getElementById('menu-reportes-compania');
+
+            if (privilegio === '1') {
+                if(menuMisReportes) menuMisReportes.style.display = 'none';
+                if(menuAdmin) menuAdmin.style.display = 'block';
+                if(menuGlobal) menuGlobal.style.display = 'block';
+            } else {
+                if(menuMisReportes) menuMisReportes.style.display = 'block';
+                if(menuAdmin) menuAdmin.style.display = 'none';
+                if(menuGlobal) menuGlobal.style.display = 'none';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             if(!localStorage.getItem('usuario')) { window.location.href = 'index.html'; return; }
-            document.getElementById('user-initial').innerText = (localStorage.getItem('nombre') || 'U').charAt(0).toUpperCase();
+            const nombre = localStorage.getItem('nombre') || 'Usuario';
+            document.getElementById('user-initial').innerText = nombre.charAt(0).toUpperCase();
+            document.getElementById('header-username').innerText = nombre;
 
-            fetch('menu.html?v=4').then(res => res.text()).then(html => {
-                document.getElementById('sidebar').innerHTML = html; lucide.createIcons();
+            fetch('menu.html?v=6').then(res => res.text()).then(html => {
+                document.getElementById('sidebar').innerHTML = html;
+                configurarPermisosMenu();
+                lucide.createIcons();
                 document.getElementById('link-nuevo-proyecto')?.classList.add('active');
             });
             document.getElementById('toggle-menu').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
             
-            // LÓGICA DE EDICIÓN
             const urlParams = new URLSearchParams(window.location.search);
             editId = urlParams.get('edit');
             if (editId) {
@@ -208,13 +233,10 @@
                         if (p.url_portada) {
                             document.getElementById('preview_img').src = p.url_portada;
                             document.getElementById('preview_img').style.display = 'block';
-                            // Guardar la URL existente por si no suben una nueva
                             filePortada = p.url_portada; 
                         }
                     }
-                } catch (e) {
-                    console.error("Error cargando proyecto:", e);
-                }
+                } catch (e) { console.error("Error cargando proyecto:", e); }
             }
             lucide.createIcons();
         });
@@ -233,7 +255,7 @@
             reader.onload = function(e) {
                 document.getElementById('preview_img').src = e.target.result;
                 document.getElementById('preview_img').style.display = 'block';
-                filePortada = file; // Sobrescribe con el nuevo archivo
+                filePortada = file;
             };
             reader.readAsDataURL(file);
         }
@@ -246,7 +268,6 @@
 
             try {
                 let urlPortada = "";
-                // Si filePortada es un string, ya es una URL. Si es un File, hay que subirla.
                 if (filePortada && typeof filePortada === 'string') {
                     urlPortada = filePortada;
                 } else if (filePortada && typeof filePortada === 'object') {
@@ -275,11 +296,9 @@
                 };
 
                 if (editId) {
-                    // ACTUALIZAR
                     await db.collection("proyectos").doc(editId).update(dataToSave);
                     showAlert("Éxito", "Proyecto actualizado correctamente.");
                 } else {
-                    // CREAR NUEVO
                     dataToSave.folio_contador = 0;
                     dataToSave.fecha_creacion = new Date().toISOString();
                     await db.collection("proyectos").add(dataToSave);
