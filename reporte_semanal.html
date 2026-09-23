@@ -9,7 +9,6 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
     <style>
         :root { --primary-blue: #058EA6; --light-blue: #e0f2fe; --bg-color: #f8fafc; --text-main: #1e293b; --text-muted: #64748b; --border-color: #e2e8f0; --danger: #dc2626; --success: #10b981; }
@@ -24,6 +23,13 @@
         @media (max-width: 768px) { .sidebar { position: fixed; height: calc(100vh - 60px); transform: translateX(-100%); z-index: 40; } .sidebar.open { transform: translateX(0); } .header-title { display: none; } }
         .content { flex: 1; padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         .container { max-width: 900px; margin: 0 auto; padding-bottom: 50px; }
+        
+        .tabs-container { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+        .tab-btn { background: #eef1f6; border: none; padding: 10px 20px; border-radius: 25px; font-size: 14px; font-weight: 600; color: #555; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; white-space: nowrap; }
+        .tab-btn.active { background: var(--primary-blue) !important; color: #ffffff !important; }
+        .tab-badge { background: #d1d5db; color: #555; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+        .tab-btn.active .tab-badge { background: #ffffff; color: var(--primary-blue); }
+
         .form-card { background: #FFFFFF; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 4px 10px rgba(0,0,0,0.03); margin-bottom: 24px; padding: 24px; }
         .section-title-form { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 700; color: var(--primary-blue); margin: 0 0 20px 0; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
         .form-group { margin-bottom: 16px; }
@@ -42,6 +48,15 @@
         .photo-slot { aspect-ratio: 1; border: 2px dashed #d1d5db; border-radius: 8px; background: #f9fafb; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; }
         .photo-slot img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
         .remove-photo { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.6); color: white; border-radius: 50%; width: 24px; height: 24px; text-align: center; line-height: 22px; cursor: pointer; font-size: 16px; font-weight: bold; z-index: 10; }
+        
+        .data-table-container { background: #FFFFFF; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border: 1px solid var(--border-color); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: center; }
+        thead { background: var(--light-blue); border-bottom: 1px solid var(--border-color); }
+        th, td { padding: 12px 15px; font-size: 14px; color: var(--text-main); }
+        tbody tr { border-bottom: 1px solid #f1f5f9; }
+        .btn-edit { background: var(--success); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; }
+        .btn-pdf { background: var(--primary-blue); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; }
+
         #custom-alert { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
         .modal-card-alert { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 400px; text-align: center; }
         #alert-btn { width: 100%; padding: 12px; border-radius: 8px; border: none; color: white; background: var(--primary-blue); font-weight: 700; font-size: 14px; cursor: pointer; }
@@ -53,7 +68,7 @@
         <div class="header-left">
             <button class="menu-btn" id="toggle-menu"><i data-lucide="menu"></i></button>
             <img src="https://i.ibb.co/8ng1078m/LOGOTIPO.png" alt="Logo VISANTIC" style="height: 35px; object-fit: contain;">
-            <h1 class="header-title">Nuevo Reporte</h1>
+            <h1 class="header-title">Reporte Semanal</h1>
         </div>
         <div class="user-initial" id="user-initial-header">U</div>
     </header>
@@ -62,7 +77,22 @@
         <aside class="sidebar" id="sidebar"></aside>
         <main class="content">
             <div class="container">
-                <form id="ordenMttoForm">
+                <div class="tabs-container">
+                    <button class="tab-btn active" onclick="cambiarTab('Nuevo reporte')" id="tab-Nuevo reporte"><i data-lucide="plus-circle" style="width: 16px;"></i> Nuevo reporte</button>
+                    <button class="tab-btn" onclick="cambiarTab('Guardados')" id="tab-Guardados">Guardados <span class="tab-badge" id="badge-Borrador">0</span></button>
+                    <button class="tab-btn" onclick="cambiarTab('Realizados')" id="tab-Realizados">Realizados <span class="tab-badge" id="badge-Realizado">0</span></button>
+                </div>
+
+                <div id="dashboard-ordenes" style="display: none;">
+                    <div class="data-table-container">
+                        <table>
+                            <thead><tr><th>Folio</th><th>Proyecto</th><th>Fecha</th><th>Acción</th></tr></thead>
+                            <tbody id="tabla-mis-ordenes"><tr><td colspan="4" style="padding: 30px; color: var(--text-muted);">Cargando...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <form id="ordenMttoForm" style="display: block;">
                     <div class="form-card" style="border-left: 4px solid var(--primary-blue);">
                         <h3 class="section-title-form"><i data-lucide="briefcase"></i> Información General</h3>
                         <div class="form-group">
@@ -71,6 +101,7 @@
                                 <option value="">Selecciona un proyecto...</option>
                             </select>
                             <input type="hidden" id="proyecto-id">
+                            <input type="hidden" id="doc-id-actual">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Ubicación (Dirección)</label>
@@ -100,8 +131,7 @@
                     <div class="form-card">
                         <h3 class="section-title-form"><i data-lucide="camera"></i> Evidencia Fotográfica (1 a 6 fotos)</h3>
                         <div class="photo-controls">
-                            <button type="button" class="btn-photo" onclick="triggerCamera()"><i data-lucide="camera"></i> Toma Foto</button>
-                            <button type="button" class="btn-photo-secondary" onclick="triggerFile()"><i data-lucide="upload"></i> Subir Archivo</button>
+                            <button type="button" class="btn-photo" onclick="triggerFile()"><i data-lucide="upload"></i> Subir Fotografías</button>
                         </div>
                         <div id="photoGrid" class="photo-grid-slots">
                             <div class="photo-slot" id="slot-0"><i data-lucide="image" style="color:#ccc; width:30px; height:30px;"></i></div>
@@ -114,7 +144,8 @@
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 10px; max-width: 400px; margin-left: auto; margin-right: auto; padding-bottom: 40px;">
-                        <button type="button" class="btn-enviar" onclick="guardarReporte()"><i data-lucide="save"></i> Guardar y Generar PDF</button>
+                        <button type="button" class="btn-guardar" onclick="guardarReporte('Borrador')"><i data-lucide="save"></i> Guardar Borrador</button>
+                        <button type="button" class="btn-enviar" onclick="guardarReporte('En proceso')"><i data-lucide="send"></i> Enviar Reporte</button>
                     </div>
                 </form>
             </div>
@@ -122,7 +153,6 @@
     </div>
 
     <input type="file" id="fileInputGlobal" accept="image/*" style="display:none" onchange="processFile(this)">
-    <canvas id="tempCanvas" style="display:none"></canvas>
     <div id="custom-alert"><div class="modal-card-alert"><h3 id="alert-title" style="margin:0 0 8px 0;font-size:18px;color:var(--text-main);font-weight:700;"></h3><p id="alert-msg" style="margin:0 0 24px 0;font-size:14px;color:var(--text-muted);"></p><button id="alert-btn" onclick="closeAlert()">Aceptar</button></div></div>
 
     <script>
@@ -138,11 +168,14 @@
         const db = firebase.firestore();
 
         let fotos = [null, null, null, null, null, null];
-        let proyectosCache = [];
+        let proyectosCache = {};
+        let misOrdenes = [];
+        let tabActual = 'Nuevo reporte';
 
         document.addEventListener('DOMContentLoaded', () => {
             if(!localStorage.getItem('usuario')) { window.location.href = 'index.html'; return; }
             document.getElementById('user-initial-header').innerText = (localStorage.getItem('nombre') || 'U').charAt(0).toUpperCase();
+            document.getElementById('fecha-hora').value = new Date().toLocaleString('es-MX');
             
             fetch('menu.html?v=4').then(res => res.text()).then(html => {
                 document.getElementById('sidebar').innerHTML = html; lucide.createIcons();
@@ -150,10 +183,8 @@
             });
             document.getElementById('toggle-menu').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
             
-            // Llenar fecha y hora actual
-            document.getElementById('fecha-hora').value = new Date().toLocaleString('es-MX');
-            
             cargarProyectos();
+            cargarMisOrdenes();
             lucide.createIcons();
         });
 
@@ -223,91 +254,178 @@
             lucide.createIcons();
         }
 
-        // OBTENER UBICACIÓN GPS
         function getGPS() {
             return new Promise((resolve) => {
                 if (!navigator.geolocation) {
                     resolve("Ubicación no soportada");
                 } else {
                     navigator.geolocation.getCurrentPosition(
-                        (pos) => resolve(`Lat: ${pos.coords.latitude.toFixed(4)}, Long: ${pos.coords.longitude.toFixed(4)}`),
-                        () => resolve("Ubicación no disponible (Permiso denegado)")
+                        (pos) => resolve(`${pos.coords.latitude}, ${pos.coords.longitude}`), // Formato limpio Lat, Long
+                        () => resolve("Ubicación no disponible")
                     );
                 }
             });
         }
 
-        async function guardarReporte() {
+        function cargarMisOrdenes() {
+            db.collection("reportes_semanales").where("residente_id","==",localStorage.getItem('usuario')).get().then(q => {
+                misOrdenes = [];
+                q.forEach(d => { misOrdenes.push({ id_doc: d.id, ...d.data() }); });
+                misOrdenes.sort((a,b) => (b.fecha_creacion||"").localeCompare(a.fecha_creacion||""));
+                actualizarBadges();
+                if(tabActual !== 'Nuevo reporte') renderTablaMisOrdenes();
+            }).catch(e => console.error(e.message));
+        }
+
+        function actualizarBadges() {
+            let b = 0, r = 0;
+            misOrdenes.forEach(o => { if(o.estado === 'Borrador') b++; else if(o.estado === 'En proceso') r++; });
+            document.getElementById('badge-Borrador').innerText = b;
+            document.getElementById('badge-Realizado').innerText = r;
+        }
+
+        function cambiarTab(e, isEdit=false) {
+            tabActual = e;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            const a = document.getElementById(`tab-${e}`); if(a) a.classList.add('active');
+            if(e === 'Nuevo reporte') { 
+                document.getElementById('dashboard-ordenes').style.display = 'none'; 
+                document.getElementById('ordenMttoForm').style.display = 'block'; 
+                if(!isEdit) limpiarFormulario(); 
+            } else { 
+                document.getElementById('ordenMttoForm').style.display = 'none'; 
+                document.getElementById('dashboard-ordenes').style.display = 'block'; 
+                renderTablaMisOrdenes(); 
+            }
+        }
+
+        function renderTablaMisOrdenes() {
+            const t = document.getElementById('tabla-mis-ordenes'); t.innerHTML = '';
+            let f = misOrdenes.filter(o => { if(tabActual === 'Guardados' && o.estado !== 'Borrador') return false; if(tabActual === 'Realizados' && o.estado !== 'En proceso') return false; return true; });
+            if(f.length === 0) { t.innerHTML = `<tr><td colspan="4" style="padding:30px;color:var(--text-muted)">Sin reportes en esta sección</td></tr>`; return; }
+            f.forEach(o => {
+                let a = o.estado === 'Borrador' ? `<button type="button" onclick="cargarBorrador('${o.id_doc}')" class="btn-edit"><i data-lucide="edit-2" style="width:14px"></i> Editar</button>` : `<button type="button" onclick="verPDFOrden('${o.id_doc}')" class="btn-pdf"><i data-lucide="file-text" style="width:14px"></i> PDF</button>`;
+                const r = document.createElement('tr');
+                r.innerHTML = `<td style="font-weight:bold">${o.folio||''}</td><td>${o.proyecto||''}</td><td>${o.fecha_hora||''}</td><td>${a}</td>`;
+                t.appendChild(r);
+            });
+            lucide.createIcons();
+        }
+
+        function limpiarFormulario() {
+            document.getElementById('ordenMttoForm').reset();
+            document.getElementById('doc-id-actual').value = '';
+            document.getElementById('folio-reporte').value = '';
+            document.getElementById('fecha-hora').value = new Date().toLocaleString('es-MX');
+            fotos = [null, null, null, null, null, null];
+            renderSlots();
+        }
+
+        function cargarBorrador(id) {
+            const o = misOrdenes.find(x => x.id_doc === id);
+            if(!o) return;
+            cambiarTab('Nuevo reporte', true);
+            document.getElementById('doc-id-actual').value = o.id_doc;
+            document.getElementById('proyecto-select').value = o.id_proyecto || '';
+            document.getElementById('proyecto-select').dispatchEvent(new Event('change'));
+            document.getElementById('folio-reporte').value = o.folio || '';
+            document.getElementById('fecha-hora').value = o.fecha_hora || '';
+            document.getElementById('frente-trabajo').value = o.frente_trabajo || '';
+            document.getElementById('descripcion').value = o.descripcion || '';
+            fotos = o.fotos && o.fotos.length ? [...o.fotos] : [];
+            while(fotos.length < 6) fotos.push(null);
+            renderSlots();
+        }
+
+        async function guardarReporte(estado) {
             const projId = document.getElementById('proyecto-id').value;
             const desc = document.getElementById('descripcion').value;
             const frente = document.getElementById('frente-trabajo').value;
             const fotosValidas = fotos.filter(f => f !== null);
+            const docId = document.getElementById('doc-id-actual').value;
 
             if(!projId || !desc || !frente) { showAlert("Atención", "Completa Proyecto, Frente de Trabajo y Descripción.", false); return; }
             if(fotosValidas.length < 1) { showAlert("Atención", "Debes subir al menos 1 fotografía.", false); return; }
 
             try {
-                // GENERAR FOLIO CONSECUTIVO POR PROYECTO
-                const projRef = db.collection('proyectos').doc(projId);
-                let nuevoFolio = "";
-                await db.runTransaction(async (t) => {
-                    const doc = await t.get(projRef);
-                    if (!doc.exists) throw "Proyecto no encontrado";
-                    let count = doc.data().folio_contador || 0;
-                    count++;
-                    t.update(projRef, { folio_contador: count });
-                    nuevoFolio = count.toString().padStart(3, '0'); // Formato 001
-                });
+                let folio = document.getElementById('folio-reporte').value;
+                let gps = "No solicitado";
 
-                const gps = await getGPS();
-                const fechaHora = new Date().toLocaleString('es-MX');
+                // Generar folio y GPS solo si se va a enviar (no en borrador a menos que sea nuevo)
+                if(estado === 'En proceso' || (estado === 'Borrador' && !docId)) {
+                    if(!folio) {
+                        const projRef = db.collection('proyectos').doc(projId);
+                        await db.runTransaction(async (t) => {
+                            const doc = await t.get(projRef);
+                            if (!doc.exists) return;
+                            let count = doc.data().folio_contador || 0;
+                            count++;
+                            t.update(projRef, { folio_contador: count });
+                            folio = count.toString().padStart(3, '0');
+                        });
+                        document.getElementById('folio-reporte').value = folio;
+                    }
+                }
 
-                // GUARDAR EN FIRESTORE
-                const reporteRef = db.collection("reportes_semanales").doc();
-                await reporteRef.set({
+                if(estado === 'En proceso') {
+                    gps = await getGPS();
+                }
+
+                const fechaHora = document.getElementById('fecha-hora').value;
+                const dataToSave = {
                     id_proyecto: projId,
                     proyecto: proyectosCache[projId].proyecto,
                     cliente: proyectosCache[projId].cliente,
-                    contrato: proyectosCache[projId].numero_documento || proyectosCache[projId].tipo_documento || '',
+                    contrato: proyectosCache[projId].contrato || '',
                     direccion: proyectosCache[projId].direccion_completa,
-                    folio: nuevoFolio,
+                    folio: folio,
                     fecha_hora: fechaHora,
                     frente_trabajo: frente,
                     descripcion: desc,
                     fotos: fotosValidas,
-                    ubicacion_gps: gps,
+                    estado: estado,
                     residente_id: localStorage.getItem('usuario'),
                     fecha_creacion: new Date().toISOString()
-                });
-
-                // PREPARAR DATOS PARA PDF
-                const datosPDF = {
-                    cliente: proyectosCache[projId].cliente,
-                    proyecto: proyectosCache[projId].proyecto,
-                    contrato: proyectosCache[projId].numero_documento || '',
-                    url_portada: proyectosCache[projId].url_portada || '',
-                    fecha_hora: fechaHora,
-                    folio: nuevoFolio,
-                    frente_trabajo: frente,
-                    descripcion: desc,
-                    fotos: fotosValidas,
-                    ubicacion_gps: gps
                 };
+                
+                // Si es enviado, guardamos la ubicación
+                if(estado === 'En proceso') dataToSave.ubicacion_gps = gps;
 
-                sessionStorage.setItem('DatosReportePDF', JSON.stringify(datosPDF));
-                showAlert("Éxito", "Reporte guardado. Generando PDF...", true);
-                setTimeout(() => {
-                    window.open('PDFdereporsem.html', '_blank');
-                    // limpiar formulario
-                    document.getElementById('ordenMttoForm').reset();
-                    fotos = [null, null, null, null, null, null];
-                    renderSlots();
-                }, 1500);
+                if(docId) {
+                    await db.collection("reportes_semanales").doc(docId).set(dataToSave, { merge: true });
+                } else {
+                    const newDoc = await db.collection("reportes_semanales").add(dataToSave);
+                    document.getElementById('doc-id-actual').value = newDoc.id;
+                }
+
+                if(estado === 'En proceso') {
+                    const datosPDF = { ...dataToSave, ubicacion_gps: gps };
+                    sessionStorage.setItem('DatosReportePDF', JSON.stringify(datosPDF));
+                    showAlert("Éxito", "Reporte enviado. Generando PDF...", true);
+                    setTimeout(() => {
+                        window.open('PDFdereporsem.html', '_blank');
+                        cargarMisOrdenes();
+                        cambiarTab('Realizados');
+                    }, 1500);
+                } else {
+                    showAlert("Éxito", "Borrador guardado correctamente.", true);
+                    setTimeout(() => {
+                        cargarMisOrdenes();
+                        cambiarTab('Guardados');
+                    }, 1000);
+                }
 
             } catch (error) {
                 console.error(error);
-                showAlert("Error", "No se pudo guardar el reporte: " + error, false);
+                showAlert("Error", "No se pudo guardar: " + error, false);
             }
+        }
+
+        function verPDFOrden(id) {
+            const orden = misOrdenes.find(x => x.id_doc === id);
+            if(!orden) { showAlert("Error", "Reporte no encontrado.", false); return; }
+            sessionStorage.setItem('DatosReportePDF', JSON.stringify(orden));
+            window.open('PDFdereporsem.html', '_blank');
         }
     </script>
 </body>
