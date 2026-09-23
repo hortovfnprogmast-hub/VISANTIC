@@ -9,11 +9,9 @@
         @page { size: A4; margin: 0; }
         * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; font-size: 12px; margin: 0; padding: 0; background-color: #555; color: #333; }
-        
         .floating-buttons { position: fixed; top: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; z-index: 9999; }
         .btn-flotante { background: #058EA6; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-weight: bold; font-family: Arial, sans-serif; box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-decoration: none; font-size: 14px; }
         .btn-flotante.green { background: #10b981; }
-
         .page { width: 210mm; height: 297mm; background: white; margin: 20px auto; padding: 15mm; position: relative; box-shadow: 0 0 10px rgba(0,0,0,0.5); display: flex; flex-direction: column; page-break-after: always; }
         .thick-divider { border-top: 8px solid #238294; margin: 12px 0; }
         input[type="radio"] { accent-color: #238294; margin-right: 6px; vertical-align: middle; width: 14px; height: 14px; }
@@ -33,36 +31,9 @@
         .work-front span { font-weight: bold; margin-left: 5px; }
         .section-banner { background-color: #238294; color: white; padding: 3px 10px; display: flex; align-items: center; width: 46%; font-weight: bold; white-space: nowrap; margin-top: 15px; }
         .text-area-box { border: 1px solid #238294; padding: 10px; width: 100%; color: #000; text-align: left; overflow-y: auto; }
-        
-        /* --- CONTENEDOR DE FOTOS CORREGIDO CON MINMAX(0, 1FR) --- */
-        .photo-grid-container { 
-            height: 400px; 
-            padding: 0; 
-            border: 1px solid #238294; 
-            display: flex; 
-            overflow: hidden; 
-            background: white; 
-        }
-        .photo-dynamic-grid { 
-            width: 100%; 
-            height: 100%; 
-            display: grid; 
-            gap: 5px; 
-            padding: 5px; 
-            background: white; 
-            min-height: 0;
-            min-width: 0;
-        }
-        .photo-dynamic-grid img { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
-            border: 1px solid #ccc; 
-            min-height: 0;
-            min-width: 0;
-            display: block;
-        }
-
+        .photo-grid-container { height: 400px; padding: 0; border: 1px solid #238294; display: flex; overflow: hidden; background: white; }
+        .photo-dynamic-grid { width: 100%; height: 100%; display: grid; gap: 5px; padding: 5px; background: white; min-height: 0; min-width: 0; }
+        .photo-dynamic-grid img { width: 100%; height: 100%; object-fit: cover; border: 1px solid #ccc; min-height: 0; min-width: 0; display: block; }
         .footer { margin-top: 15px; width: 100%; display: flex; flex-direction: column; align-items: center; }
         .signature-block { text-align: center; margin-bottom: 15px; width: 100%; }
         .signature-name { font-weight: bold; font-size: 13px; color: #000; margin-bottom: 35px; }
@@ -70,31 +41,18 @@
         .footer-atentamente { text-align: center; font-size: 13px; font-weight: bold; color: #000; margin-bottom: 12px; }
         .footer-banner { background-color: #238294; color: white; text-align: center; padding: 5px 0; font-size: 11px; letter-spacing: 0.5px; width: 100%; }
         .footer-emision { text-align: right; font-size: 11px; color: #000; margin-top: 10px; font-weight: bold; width: 100%; }
-        
-        @media print {
-            body { background-color: white; }
-            .page { margin: 0; box-shadow: none; width: 100%; height: 100%; }
-            .floating-buttons { display: none; }
-        }
+        @media print { body { background-color: white; } .page { margin: 0; box-shadow: none; width: 100%; height: 100%; } .floating-buttons { display: none; } }
     </style>
 </head>
 <body>
-
     <div class="floating-buttons">
-        <button class="btn-flotante" onclick="window.close()">
-            <i data-lucide="arrow-left-circle"></i> Regresar a la aplicación
-        </button>
-        <button class="btn-flotante green" onclick="imprimirPDF()">
-            <i data-lucide="download"></i> Descargar PDF
-        </button>
+        <button class="btn-flotante" onclick="window.close()"><i data-lucide="arrow-left-circle"></i> Regresar a la aplicación</button>
+        <button class="btn-flotante green" onclick="imprimirPDF()"><i data-lucide="download"></i> Descargar PDF</button>
     </div>
-
     <div class="page" id="pdf-page">
         <div class="header">
             <div class="header-left">
-                <div class="logo-container">
-                    <img src="https://i.ibb.co/ymFHXQsN/LOGOTIPO.png" alt="VISANTIC" style="max-height: 65px; object-fit: contain;">
-                </div>
+                <div class="logo-container"><img src="https://i.ibb.co/ymFHXQsN/LOGOTIPO.png" alt="VISANTIC" style="max-height: 65px; object-fit: contain;"></div>
                 <div class="info-fields">
                     <div><input type="radio" checked> Cliente: <span id="pdf-cliente"></span></div>
                     <div><input type="radio" checked> Proyecto: <span id="pdf-proyecto"></span></div>
@@ -103,105 +61,58 @@
             </div>
             <div class="empty-box" id="pdf-portada-box"></div>
         </div>
-
         <div class="thick-divider"></div>
         <div class="report-title">REPORTE</div>
-
         <div class="meta-row">
             <div><input type="radio" checked> Fecha, hora: <span id="pdf-fecha"></span></div>
             <div><input type="radio" checked> Número de reporte: <span id="pdf-folio"></span></div>
         </div>
-
         <div class="thick-divider"></div>
-        <div class="work-front">
-            <input type="radio" checked> Frente de trabajo: <span id="pdf-frente"></span>
-        </div>
-        
+        <div class="work-front"><input type="radio" checked> Frente de trabajo: <span id="pdf-frente"></span></div>
         <div class="section-banner"><input type="radio" checked> Descripción de Actividades o Contingencias.</div>
         <div class="text-area-box" style="height: 80px;" id="pdf-descripcion"></div>
-
         <div class="section-banner"><input type="radio" checked> Evidencia Fotográfica del Reporte.</div>
-        <div class="photo-grid-container">
-            <div class="photo-dynamic-grid" id="pdf-fotos"></div>
-        </div>
-
+        <div class="photo-grid-container"><div class="photo-dynamic-grid" id="pdf-fotos"></div></div>
         <div class="footer">
-            <div class="signature-block">
-                <div class="signature-name" id="pdf-residente"></div>
-                <div class="signature-line"></div>
-            </div>
+            <div class="signature-block"><div class="signature-name" id="pdf-residente"></div><div class="signature-line"></div></div>
             <div class="footer-atentamente">Atentamente</div>
             <div class="footer-banner">VISANTIC S.A DE C.V . TODOS LOS DERECHOS RESERVADOS.</div>
             <div class="footer-emision">El presente documento fue redactado y emitido: <span id="pdf-ubicacion"></span></div>
         </div>
     </div>
-
     <script>
-        const reportData = JSON.parse(sessionStorage.getItem('DatosReportePDF') || '{}');
+        const reportData = JSON.parse(localStorage.getItem('DatosReportePDF') || '{}');
         const sanitize = (str) => (str || '').replace(/[^a-zA-Z0-9 \-]/g, '').trim();
         const fileName = `${sanitize(reportData.folio)} ${sanitize(reportData.cliente)} ${sanitize(reportData.proyecto)} - ${sanitize(reportData.residente_nombre)} ${sanitize(reportData.fecha_hora)}`;
         document.title = fileName;
-
         document.getElementById('pdf-cliente').innerText = reportData.cliente || '';
         document.getElementById('pdf-proyecto').innerText = reportData.proyecto || '';
         document.getElementById('pdf-contrato').innerText = reportData.contrato || '';
         document.getElementById('pdf-residente').innerText = reportData.residente_nombre || '';
-        
         const portadaBox = document.getElementById('pdf-portada-box');
         if(reportData.url_portada) {
-            const img = new Image();
-            img.src = reportData.url_portada;
-            img.style.width = '100%';
-            img.style.height = '100%';
-            img.style.objectFit = 'cover';
+            const img = new Image(); img.src = reportData.url_portada;
+            img.style.width = '100%'; img.style.height = '100%'; img.style.objectFit = 'cover';
             portadaBox.appendChild(img);
         }
-
         document.getElementById('pdf-fecha').innerText = reportData.fecha_hora || '';
         document.getElementById('pdf-folio').innerText = reportData.folio || '';
         document.getElementById('pdf-frente').innerText = reportData.frente_trabajo || '';
         document.getElementById('pdf-descripcion').innerText = reportData.descripcion || '';
         document.getElementById('pdf-ubicacion').innerText = reportData.ubicacion_gps || 'No disponible';
-
         const grid = document.getElementById('pdf-fotos');
         const fotos = (reportData.fotos || []).filter(f => f !== null);
         const count = fotos.length;
-
         grid.innerHTML = '';
-
         if (count > 0) {
-            if (count === 1) { 
-                grid.style.gridTemplateColumns = 'minmax(0, 1fr)'; 
-                grid.style.gridTemplateRows = 'minmax(0, 1fr)'; 
-            } 
-            else if (count === 2) { 
-                grid.style.gridTemplateColumns = 'minmax(0, 1fr) minmax(0, 1fr)'; 
-                grid.style.gridTemplateRows = 'minmax(0, 1fr)'; 
-            } 
-            else if (count === 3) { 
-                grid.style.gridTemplateColumns = 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)'; 
-                grid.style.gridTemplateRows = 'minmax(0, 1fr)'; 
-            } 
-            else if (count === 4) { 
-                grid.style.gridTemplateColumns = 'minmax(0, 1fr) minmax(0, 1fr)'; 
-                grid.style.gridTemplateRows = 'minmax(0, 1fr) minmax(0, 1fr)'; 
-            } 
-            else if (count === 5) { 
-                grid.style.gridTemplateColumns = 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)'; 
-                grid.style.gridTemplateRows = 'minmax(0, 1fr) minmax(0, 1fr)'; 
-            }
-            else if (count === 6) { 
-                grid.style.gridTemplateColumns = 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)'; 
-                grid.style.gridTemplateRows = 'minmax(0, 1fr) minmax(0, 1fr)'; 
-            }
-
-            fotos.forEach(foto => {
-                const img = document.createElement('img');
-                img.src = foto;
-                grid.appendChild(img);
-            });
+            if (count === 1) { grid.style.gridTemplateColumns = 'minmax(0, 1fr)'; grid.style.gridTemplateRows = 'minmax(0, 1fr)'; } 
+            else if (count === 2) { grid.style.gridTemplateColumns = 'minmax(0, 1fr) minmax(0, 1fr)'; grid.style.gridTemplateRows = 'minmax(0, 1fr)'; } 
+            else if (count === 3) { grid.style.gridTemplateColumns = 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)'; grid.style.gridTemplateRows = 'minmax(0, 1fr)'; } 
+            else if (count === 4) { grid.style.gridTemplateColumns = 'minmax(0, 1fr) minmax(0, 1fr)'; grid.style.gridTemplateRows = 'minmax(0, 1fr) minmax(0, 1fr)'; } 
+            else if (count === 5) { grid.style.gridTemplateColumns = 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)'; grid.style.gridTemplateRows = 'minmax(0, 1fr) minmax(0, 1fr)'; } 
+            else if (count === 6) { grid.style.gridTemplateColumns = 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)'; grid.style.gridTemplateRows = 'minmax(0, 1fr) minmax(0, 1fr)'; }
+            fotos.forEach(foto => { const img = document.createElement('img'); img.src = foto; grid.appendChild(img); });
         }
-
         function imprimirPDF() { window.print(); }
         lucide.createIcons();
     </script>
