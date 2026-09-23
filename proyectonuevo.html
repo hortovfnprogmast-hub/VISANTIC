@@ -49,7 +49,7 @@
         <div class="header-left">
             <button class="menu-btn" id="toggle-menu"><i data-lucide="menu"></i></button>
             <img src="https://i.ibb.co/8ng1078m/LOGOTIPO.png" alt="Logo VISANTIC" style="height: 35px; object-fit: contain;">
-            <h1 class="header-title">Alta de Proyecto</h1>
+            <h1 class="header-title" id="header-title-text">Alta de Proyecto</h1>
         </div>
         <div class="user-initial" id="user-initial">U</div>
     </header>
@@ -60,7 +60,7 @@
         <main class="content">
             <div class="container">
                 <div style="margin-bottom: 25px; border-bottom: 2px solid var(--border-color); padding-bottom: 15px; text-align: center;">
-                    <h1 style="font-size: 24px; color: var(--primary-blue); margin: 0 0 5px 0; font-weight: 800; text-transform: uppercase;">Nuevo Proyecto</h1>
+                    <h1 style="font-size: 24px; color: var(--primary-blue); margin: 0 0 5px 0; font-weight: 800; text-transform: uppercase;" id="form-title">Nuevo Proyecto</h1>
                     <p style="color: var(--text-muted); margin: 0; font-size: 14px;">Ingresa los datos del proyecto u obra</p>
                 </div>
 
@@ -168,7 +168,10 @@
         const db = firebase.firestore();
         const storage = firebase.storage();
 
-        document.addEventListener('DOMContentLoaded', () => {
+        let filePortada = null;
+        let editId = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
             if(!localStorage.getItem('usuario')) { window.location.href = 'index.html'; return; }
             document.getElementById('user-initial').innerText = (localStorage.getItem('nombre') || 'U').charAt(0).toUpperCase();
 
@@ -177,6 +180,42 @@
                 document.getElementById('link-nuevo-proyecto')?.classList.add('active');
             });
             document.getElementById('toggle-menu').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
+            
+            // LÓGICA DE EDICIÓN
+            const urlParams = new URLSearchParams(window.location.search);
+            editId = urlParams.get('edit');
+            if (editId) {
+                document.getElementById('header-title-text').innerText = "Editar Proyecto";
+                document.getElementById('form-title').innerText = "Editar Proyecto";
+                document.getElementById('btnGuardar').innerText = "Actualizar Proyecto";
+                
+                try {
+                    const doc = await db.collection('proyectos').doc(editId).get();
+                    if (doc.exists) {
+                        const p = doc.data();
+                        document.getElementById('cliente').value = p.cliente || '';
+                        document.getElementById('proyecto').value = p.proyecto || '';
+                        document.getElementById('numero_documento').value = p.numero_documento || '';
+                        document.getElementById('fecha_inicio').value = p.fecha_inicio || '';
+                        document.getElementById('fecha_termino').value = p.fecha_termino || '';
+                        document.getElementById('calle').value = p.calle || '';
+                        document.getElementById('numero').value = p.numero || '';
+                        document.getElementById('cp').value = p.cp || '';
+                        document.getElementById('colonia').value = p.colonia || '';
+                        document.getElementById('ciudad').value = p.ciudad || '';
+                        document.getElementById('estado').value = p.estado || '';
+                        
+                        if (p.url_portada) {
+                            document.getElementById('preview_img').src = p.url_portada;
+                            document.getElementById('preview_img').style.display = 'block';
+                            // Guardar la URL existente por si no suben una nueva
+                            filePortada = p.url_portada; 
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error cargando proyecto:", e);
+                }
+            }
             lucide.createIcons();
         });
 
@@ -187,7 +226,6 @@
         }
         function closeAlert() { document.getElementById('custom-alert').style.display = 'none'; }
 
-        let filePortada = null;
         function previewPhoto(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -195,7 +233,7 @@
             reader.onload = function(e) {
                 document.getElementById('preview_img').src = e.target.result;
                 document.getElementById('preview_img').style.display = 'block';
-                filePortada = file;
+                filePortada = file; // Sobrescribe con el nuevo archivo
             };
             reader.readAsDataURL(file);
         }
@@ -208,7 +246,10 @@
 
             try {
                 let urlPortada = "";
-                if (filePortada) {
+                // Si filePortada es un string, ya es una URL. Si es un File, hay que subirla.
+                if (filePortada && typeof filePortada === 'string') {
+                    urlPortada = filePortada;
+                } else if (filePortada && typeof filePortada === 'object') {
                     const storageRef = storage.ref();
                     const fileRef = storageRef.child(`proyectos_portada/${Date.now()}_${filePortada.name}`);
                     const snapshot = await fileRef.put(filePortada);
@@ -217,7 +258,7 @@
 
                 const direccionCompleta = `${document.getElementById('calle').value} ${document.getElementById('numero').value}, ${document.getElementById('colonia').value}, C.P. ${document.getElementById('cp').value}, ${document.getElementById('ciudad').value}, ${document.getElementById('estado').value}`;
 
-                await db.collection("proyectos").add({
+                const dataToSave = {
                     cliente: document.getElementById('cliente').value,
                     proyecto: document.getElementById('proyecto').value,
                     numero_documento: document.getElementById('numero_documento').value,
@@ -230,16 +271,25 @@
                     ciudad: document.getElementById('ciudad').value,
                     estado: document.getElementById('estado').value,
                     direccion_completa: direccionCompleta,
-                    folio_contador: 0,
-                    url_portada: urlPortada,
-                    fecha_creacion: new Date().toISOString()
-                });
-                
-                showAlert("Éxito", "Proyecto guardado correctamente.");
+                    url_portada: urlPortada
+                };
+
+                if (editId) {
+                    // ACTUALIZAR
+                    await db.collection("proyectos").doc(editId).update(dataToSave);
+                    showAlert("Éxito", "Proyecto actualizado correctamente.");
+                } else {
+                    // CREAR NUEVO
+                    dataToSave.folio_contador = 0;
+                    dataToSave.fecha_creacion = new Date().toISOString();
+                    await db.collection("proyectos").add(dataToSave);
+                    showAlert("Éxito", "Proyecto guardado correctamente.");
+                }
+
                 setTimeout(() => window.location.href = 'proyectos.html', 1500);
             } catch (e) {
                 console.error(e);
-                showAlert("Error", "No se pudo guardar el proyecto.");
+                showAlert("Error", "No se pudo guardar el proyecto: " + e.message);
                 btn.disabled = false; btn.innerHTML = '<i data-lucide="save"></i> Guardar Proyecto';
                 lucide.createIcons();
             }
