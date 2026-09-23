@@ -34,8 +34,8 @@
         .section-banner { background-color: #238294; color: white; padding: 3px 10px; display: flex; align-items: center; width: 46%; font-weight: bold; white-space: nowrap; margin-top: 15px; }
         .text-area-box { border: 1px solid #238294; padding: 10px; width: 100%; color: #000; text-align: left; overflow-y: auto; }
         
-        /* Contenedor de Fotos Mejorado */
-        .photo-grid-container { height: 400px; padding: 0; border: 1px solid #238294; display: grid; overflow: hidden; }
+        /* Contenedor de Fotos */
+        .photo-grid-container { height: 400px; padding: 0; border: 1px solid #238294; display: flex; overflow: hidden; background: white; }
         .photo-dynamic-grid { width: 100%; height: 100%; display: grid; gap: 5px; padding: 5px; background: white; }
         .photo-dynamic-grid img { width: 100%; height: 100%; object-fit: cover; border: 1px solid #ccc; }
 
@@ -143,13 +143,32 @@
         const fotos = (reportData.fotos || []).filter(f => f !== null);
         const count = fotos.length;
 
+        // LÓGICA DE ACOMODO EXACTA PEDIDA
         if (count > 0) {
-            if (count === 1) { grid.style.gridTemplateColumns = '1fr'; grid.style.gridTemplateRows = '1fr'; } 
-            else if (count === 2) { grid.style.gridTemplateColumns = '1fr 1fr'; grid.style.gridTemplateRows = '1fr'; } 
-            else if (count === 3) { grid.style.gridTemplateColumns = '1fr 1fr 1fr'; grid.style.gridTemplateRows = '1fr'; } 
-            else if (count === 4) { grid.style.gridTemplateColumns = '1fr 1fr'; grid.style.gridTemplateRows = '1fr 1fr'; } 
-            else if (count === 5) { grid.style.gridTemplateColumns = '1fr 1fr 1fr'; grid.style.gridTemplateRows = '1fr 1fr'; }
-            else if (count === 6) { grid.style.gridTemplateColumns = '1fr 1fr 1fr'; grid.style.gridTemplateRows = '1fr 1fr'; }
+            if (count === 1) { 
+                grid.style.gridTemplateColumns = '1fr'; 
+                grid.style.gridTemplateRows = '1fr'; 
+            } 
+            else if (count === 2) { 
+                grid.style.gridTemplateColumns = '1fr'; 
+                grid.style.gridTemplateRows = '1fr 1fr'; 
+            } 
+            else if (count === 3) { 
+                grid.style.gridTemplateColumns = '1fr 1fr 1fr'; 
+                grid.style.gridTemplateRows = '1fr'; 
+            } 
+            else if (count === 4) { 
+                grid.style.gridTemplateColumns = '1fr 1fr'; 
+                grid.style.gridTemplateRows = '1fr 1fr'; 
+            } 
+            else if (count === 5) { 
+                grid.style.gridTemplateColumns = '1fr 1fr 1fr'; 
+                grid.style.gridTemplateRows = '1fr 1fr'; 
+            }
+            else if (count === 6) { 
+                grid.style.gridTemplateColumns = '1fr 1fr 1fr'; 
+                grid.style.gridTemplateRows = '1fr 1fr'; 
+            }
 
             fotos.forEach(foto => {
                 const img = document.createElement('img');
