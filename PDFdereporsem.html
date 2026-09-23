@@ -34,8 +34,9 @@
         .section-banner { background-color: #238294; color: white; padding: 3px 10px; display: flex; align-items: center; width: 46%; font-weight: bold; white-space: nowrap; margin-top: 15px; }
         .text-area-box { border: 1px solid #238294; padding: 10px; width: 100%; color: #000; text-align: left; overflow-y: auto; }
         
-        .photo-grid-container { height: 400px; padding: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .photo-dynamic-grid { width: 100%; height: 100%; display: grid; gap: 10px; padding: 10px; }
+        /* Contenedor de Fotos Mejorado */
+        .photo-grid-container { height: 400px; padding: 0; border: 1px solid #238294; display: grid; overflow: hidden; }
+        .photo-dynamic-grid { width: 100%; height: 100%; display: grid; gap: 5px; padding: 5px; background: white; }
         .photo-dynamic-grid img { width: 100%; height: 100%; object-fit: cover; border: 1px solid #ccc; }
 
         .footer { margin-top: 15px; width: 100%; display: flex; flex-direction: column; align-items: center; }
@@ -113,11 +114,7 @@
 
     <script>
         const reportData = JSON.parse(sessionStorage.getItem('DatosReportePDF') || '{}');
-
-        // Función para limpiar texto para nombres de archivo
         const sanitize = (str) => (str || '').replace(/[^a-zA-Z0-9 \-]/g, '').trim();
-
-        // Configurar el Título del documento (Nombre del archivo al descargar)
         const fileName = `${sanitize(reportData.folio)} ${sanitize(reportData.cliente)} ${sanitize(reportData.proyecto)} - ${sanitize(reportData.residente_nombre)} ${sanitize(reportData.fecha_hora)}`;
         document.title = fileName;
 
@@ -126,7 +123,6 @@
         document.getElementById('pdf-contrato').innerText = reportData.contrato || '';
         document.getElementById('pdf-residente').innerText = reportData.residente_nombre || '';
         
-        // Cargar Imagen de Portada
         const portadaBox = document.getElementById('pdf-portada-box');
         if(reportData.url_portada) {
             const img = new Image();
@@ -134,7 +130,6 @@
             img.style.width = '100%';
             img.style.height = '100%';
             img.style.objectFit = 'cover';
-            img.alt = 'Portada';
             portadaBox.appendChild(img);
         }
 
@@ -153,7 +148,8 @@
             else if (count === 2) { grid.style.gridTemplateColumns = '1fr 1fr'; grid.style.gridTemplateRows = '1fr'; } 
             else if (count === 3) { grid.style.gridTemplateColumns = '1fr 1fr 1fr'; grid.style.gridTemplateRows = '1fr'; } 
             else if (count === 4) { grid.style.gridTemplateColumns = '1fr 1fr'; grid.style.gridTemplateRows = '1fr 1fr'; } 
-            else if (count >= 5) { grid.style.gridTemplateColumns = '1fr 1fr 1fr'; grid.style.gridTemplateRows = '1fr 1fr'; }
+            else if (count === 5) { grid.style.gridTemplateColumns = '1fr 1fr 1fr'; grid.style.gridTemplateRows = '1fr 1fr'; }
+            else if (count === 6) { grid.style.gridTemplateColumns = '1fr 1fr 1fr'; grid.style.gridTemplateRows = '1fr 1fr'; }
 
             fotos.forEach(foto => {
                 const img = document.createElement('img');
@@ -162,10 +158,7 @@
             });
         }
 
-        function imprimirPDF() {
-            window.print();
-        }
-
+        function imprimirPDF() { window.print(); }
         lucide.createIcons();
     </script>
 </body>
