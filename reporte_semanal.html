@@ -18,7 +18,7 @@
         .menu-btn { background: none; border: none; cursor: pointer; color: var(--text-main); }
         .header-title { margin: 0; font-size: 15px; font-weight: 700; color: var(--primary-blue); }
         .header-right { display: flex; align-items: center; gap: 12px; }
-        .user-name-top { font-weight: 700; color: var(--primary-blue); font-size: 14px; }
+        .user-name-top { font-weight: 800; color: var(--primary-blue); font-size: 15px; text-transform: uppercase; }
         .user-initial { width: 35px; height: 35px; border-radius: 50%; background-color: var(--primary-blue); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
         .user-dropdown { position: absolute; top: 60px; right: 15px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid var(--border-color); width: 220px; z-index: 1000; display: none; overflow: hidden; }
         .user-dropdown.show { display: block; }
@@ -66,6 +66,12 @@
         tbody tr { border-bottom: 1px solid #f1f5f9; }
         .btn-edit { background: var(--success); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; }
         .btn-pdf { background: var(--primary-blue); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; }
+
+        /* CSS para Cámara */
+        #camera-overlay { display: none; position: fixed !important; z-index: 999999 !important; left: 0 !important; top: 0 !important; width: 100vw !important; height: 100vh !important; background-color: rgba(0,0,0,0.95) !important; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+        #camera-overlay.show { display: flex !important; }
+        #camera-stream { width: 100%; max-width: 600px; aspect-ratio: 4/3; background: black; border-radius: 12px; overflow: hidden; position: relative; }
+        #camera-video { width: 100%; height: 100%; object-fit: cover; }
 
         #custom-alert { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
         .modal-card-alert { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 400px; text-align: center; }
@@ -153,7 +159,8 @@
                     <div class="form-card">
                         <h3 class="section-title-form"><i data-lucide="camera"></i> Evidencia Fotográfica (1 a 6 fotos)</h3>
                         <div class="photo-controls">
-                            <button type="button" class="btn-photo" onclick="triggerFile()"><i data-lucide="upload"></i> Subir Fotografías</button>
+                            <button type="button" class="btn-photo" onclick="triggerCamera()"><i data-lucide="camera"></i> Toma Foto</button>
+                            <button type="button" class="btn-photo-secondary" onclick="triggerFile()"><i data-lucide="upload"></i> Subir Archivo</button>
                         </div>
                         <div id="photoGrid" class="photo-grid-slots">
                             <div class="photo-slot" id="slot-0"><i data-lucide="image" style="color:#ccc; width:30px; height:30px;"></i></div>
@@ -174,7 +181,18 @@
         </main>
     </div>
 
+    <!-- Overlay de Cámara -->
+    <div id="camera-overlay">
+        <div id="camera-stream"><video id="camera-video" autoplay="true" playsinline></video></div>
+        <div style="margin-top: 15px; display: flex; gap: 10px;">
+            <button onclick="closeCamera()" style="padding:10px 20px; border-radius:6px; border:1px solid #d1d5db; background:white; cursor:pointer; font-weight:bold; color: #000;">Cerrar</button>
+            <button onclick="switchCamera()" style="padding:10px 20px; border-radius:6px; border:1px solid #d1d5db; background:#f3f4f6; cursor:pointer; font-weight:bold; color: #000;"><i data-lucide="refresh-cw"></i> Girar</button>
+            <button onclick="captureFoto()" style="padding:10px 20px; border-radius:6px; background:var(--primary-blue); color:white; border:none; cursor:pointer; font-weight:bold;">Capturar</button>
+        </div>
+    </div>
+
     <input type="file" id="fileInputGlobal" accept="image/*" style="display:none" onchange="processFile(this)">
+    <canvas id="tempCanvas" style="display:none"></canvas>
     <div id="custom-alert"><div class="modal-card-alert"><h3 id="alert-title" style="margin:0 0 8px 0;font-size:18px;color:var(--text-main);font-weight:700;"></h3><p id="alert-msg" style="margin:0 0 24px 0;font-size:14px;color:var(--text-muted);"></p><button id="alert-btn" onclick="closeAlert()">Aceptar</button></div></div>
 
     <script>
@@ -193,6 +211,8 @@
         let proyectosCache = {};
         let misOrdenes = [];
         let tabActual = 'Nuevo reporte';
+        let currentFacingMode = 'environment';
+        let currentStream;
         
         const urlParams = new URLSearchParams(window.location.search);
         const scope = urlParams.get('scope') || 'user'; 
@@ -222,8 +242,10 @@
         document.addEventListener('DOMContentLoaded', () => {
             if(!localStorage.getItem('usuario')) { window.location.href = 'index.html'; return; }
             const nombre = localStorage.getItem('nombre') || 'Usuario';
-            document.getElementById('user-initial-header').innerText = nombre.charAt(0).toUpperCase();
+            
+            // FORZAR NOMBRE ARRIBA
             document.getElementById('header-username').innerText = nombre;
+            document.getElementById('user-initial-header').innerText = nombre.charAt(0).toUpperCase();
             document.getElementById('user-dropdown-name').innerText = nombre;
             document.getElementById('fecha-hora').value = new Date().toLocaleString('es-MX');
             
@@ -234,7 +256,7 @@
                 document.getElementById('filter-date').addEventListener('change', renderTablaMisOrdenes);
             }
             
-            fetch('menu.html?v=6').then(res => res.text()).then(html => {
+            fetch('menu.html?v=7').then(res => res.text()).then(html => {
                 document.getElementById('sidebar').innerHTML = html;
                 configurarPermisosMenu();
                 lucide.createIcons();
@@ -285,6 +307,7 @@
             }
         });
 
+        // LÓGICA DE FOTOS Y CÁMARA RESTAURADA
         function triggerFile() { if(fotos.filter(f => f !== null).length < 6) document.getElementById('fileInputGlobal').click(); else showAlert("Límite", "Máximo 6 fotos.", false); }
         function processFile(i) {
             if(!i.files || i.files.length === 0) return;
@@ -305,6 +328,32 @@
                 img.src = e.target.result;
             };
             r.readAsDataURL(i.files[0]);
+        }
+
+        async function triggerCamera() {
+            if(fotos.filter(f => f !== null).length >= 6) { showAlert("Límite", "Máximo 6 fotos.", false); return; }
+            await startCamera();
+        }
+        async function startCamera() {
+            if(currentStream) { currentStream.getTracks().forEach(t => t.stop()); }
+            try { 
+                currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode } }); 
+                document.getElementById('camera-video').srcObject = currentStream; 
+                document.getElementById('camera-overlay').classList.add('show'); 
+            } catch(e) { showAlert("Error", "Cámara no disponible.", false); }
+        }
+        function switchCamera() { currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment'; startCamera(); }
+        function closeCamera() { if(currentStream) { currentStream.getTracks().forEach(t => t.stop()); } document.getElementById('camera-overlay').classList.remove('show'); }
+
+        function captureFoto() {
+            const c = document.getElementById('tempCanvas'), v = document.getElementById('camera-video');
+            c.width = v.videoWidth; c.height = v.videoHeight;
+            const x = c.getContext('2d');
+            if(currentFacingMode === 'user') { x.translate(c.width, 0); x.scale(-1, 1); }
+            x.drawImage(v, 0, 0, c.width, c.height); x.setTransform(1, 0, 0, 1, 0, 0);
+            const s = fotos.findIndex(f => f === null);
+            if(s > -1) { fotos[s] = c.toDataURL('image/jpeg', 0.8); renderSlots(); }
+            closeCamera();
         }
 
         function removeFoto(i) { fotos[i] = null; renderSlots(); }
@@ -339,7 +388,6 @@
             if (scope !== 'global') {
                 query = query.where("residente_id", "==", localStorage.getItem('usuario'));
             }
-            
             query.get().then(q => {
                 misOrdenes = [];
                 q.forEach(d => { misOrdenes.push({ id_doc: d.id, ...d.data() }); });
@@ -383,9 +431,7 @@
             let filtered = misOrdenes.filter(o => {
                 if(tabActual === 'Guardados' && o.estado !== 'Borrador') return false;
                 if(tabActual === 'Realizados' && o.estado !== 'En proceso') return false;
-                
                 if(projectFilter && o.proyecto !== projectFilter) return false;
-                
                 if(searchText) {
                     const text = `${o.folio} ${o.proyecto} ${o.cliente} ${o.fecha_hora}`.toLowerCase();
                     if (!text.includes(searchText)) return false;
