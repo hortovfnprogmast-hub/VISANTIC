@@ -260,7 +260,7 @@
                     resolve("Ubicación no soportada");
                 } else {
                     navigator.geolocation.getCurrentPosition(
-                        (pos) => resolve(`${pos.coords.latitude}, ${pos.coords.longitude}`), // Formato limpio Lat, Long
+                        (pos) => resolve(`${pos.coords.latitude}, ${pos.coords.longitude}`),
                         () => resolve("Ubicación no disponible")
                     );
                 }
@@ -351,7 +351,6 @@
                 let folio = document.getElementById('folio-reporte').value;
                 let gps = "No solicitado";
 
-                // Generar folio y GPS solo si se va a enviar (no en borrador a menos que sea nuevo)
                 if(estado === 'En proceso' || (estado === 'Borrador' && !docId)) {
                     if(!folio) {
                         const projRef = db.collection('proyectos').doc(projId);
@@ -372,12 +371,15 @@
                 }
 
                 const fechaHora = document.getElementById('fecha-hora').value;
+                
+                // INCLUIR DATOS FALTANTES PARA EL PDF
                 const dataToSave = {
                     id_proyecto: projId,
                     proyecto: proyectosCache[projId].proyecto,
                     cliente: proyectosCache[projId].cliente,
-                    contrato: proyectosCache[projId].contrato || '',
+                    contrato: proyectosCache[projId].numero_documento || '',
                     direccion: proyectosCache[projId].direccion_completa,
+                    url_portada: proyectosCache[projId].url_portada || '',
                     folio: folio,
                     fecha_hora: fechaHora,
                     frente_trabajo: frente,
@@ -385,10 +387,10 @@
                     fotos: fotosValidas,
                     estado: estado,
                     residente_id: localStorage.getItem('usuario'),
+                    residente_nombre: localStorage.getItem('nombre') || 'Usuario',
                     fecha_creacion: new Date().toISOString()
                 };
                 
-                // Si es enviado, guardamos la ubicación
                 if(estado === 'En proceso') dataToSave.ubicacion_gps = gps;
 
                 if(docId) {
