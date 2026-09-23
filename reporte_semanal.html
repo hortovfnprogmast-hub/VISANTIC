@@ -191,7 +191,8 @@
         </div>
     </div>
 
-    <input type="file" id="fileInputGlobal" accept="image/*" style="display:none" onchange="processFile(this)">
+    <!-- Se agregó 'multiple' en el input para permitir seleccionar varias a la vez -->
+    <input type="file" id="fileInputGlobal" accept="image/*" multiple style="display:none" onchange="processFile(this)">
     <canvas id="tempCanvas" style="display:none"></canvas>
     <div id="custom-alert"><div class="modal-card-alert"><h3 id="alert-title" style="margin:0 0 8px 0;font-size:18px;color:var(--text-main);font-weight:700;"></h3><p id="alert-msg" style="margin:0 0 24px 0;font-size:14px;color:var(--text-muted);"></p><button id="alert-btn" onclick="closeAlert()">Aceptar</button></div></div>
 
@@ -243,7 +244,6 @@
             if(!localStorage.getItem('usuario')) { window.location.href = 'index.html'; return; }
             const nombre = localStorage.getItem('nombre') || 'Usuario';
             
-            // FORZAR NOMBRE ARRIBA
             document.getElementById('header-username').innerText = nombre;
             document.getElementById('user-initial-header').innerText = nombre.charAt(0).toUpperCase();
             document.getElementById('user-dropdown-name').innerText = nombre;
@@ -307,27 +307,41 @@
             }
         });
 
-        // LÓGICA DE FOTOS Y CÁMARA CORREGIDA
+        // LÓGICA DE FOTOS CORREGIDA PARA MULTIPLES ARCHIVOS
         function triggerFile() { if(fotos.filter(f => f !== null).length < 6) document.getElementById('fileInputGlobal').click(); else showAlert("Límite", "Máximo 6 fotos.", false); }
-        function processFile(i) {
-            if(!i.files || i.files.length === 0) return;
-            const r = new FileReader();
-            r.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const c = document.createElement('canvas');
-                    let w = img.width, h = img.height; const m = 800;
-                    if(w > m || h > m) { if(w > h) { h = (h/w)*m; w = m; } else { w = (w/h)*m; h = m; } }
-                    c.width = w; c.height = h;
-                    c.getContext('2d').drawImage(img, 0, 0, w, h);
-                    const dataUrl = c.toDataURL('image/jpeg', 0.7);
-                    const emptyIndex = fotos.findIndex(slot => slot === null);
-                    if(emptyIndex > -1) { fotos[emptyIndex] = dataUrl; renderSlots(); }
-                    i.value = '';
+        
+        function processFile(input) {
+            if(!input.files || input.files.length === 0) return;
+            
+            // Convertir los archivos seleccionados a un arreglo y procesarlos todos
+            const files = Array.from(input.files);
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        let w = img.width, h = img.height; const maxSize = 800;
+                        if(w > maxSize || h > maxSize) { 
+                            if(w > h) { h = (h/w)*maxSize; w = maxSize; } 
+                            else { w = (w/h)*maxSize; h = maxSize; } 
+                        }
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                        
+                        const emptyIndex = fotos.findIndex(slot => slot === null);
+                        if(emptyIndex > -1) { 
+                            fotos[emptyIndex] = dataUrl; 
+                            renderSlots(); 
+                        }
+                    };
+                    img.src = e.target.result;
                 };
-                img.src = e.target.result;
-            };
-            r.readAsDataURL(i.files[0]);
+                reader.readAsDataURL(file);
+            });
+            
+            input.value = ''; // Limpiar el input después de procesar
         }
 
         async function triggerCamera() {
@@ -346,12 +360,12 @@
         function closeCamera() { if(currentStream) { currentStream.getTracks().forEach(t => t.stop()); } document.getElementById('camera-overlay').classList.remove('show'); }
 
         function captureFoto() {
-            const c = document.getElementById('tempCanvas'), v = document.getElementById('camera-video');
-            c.width = v.videoWidth; c.height = v.videoHeight;
-            const x = c.getContext('2d');
-            if(currentFacingMode === 'user') { x.translate(c.width, 0); x.scale(-1, 1); }
-            x.drawImage(v, 0, 0, c.width, c.height); x.setTransform(1, 0, 0, 1, 0, 0);
-            const dataUrl = c.toDataURL('image/jpeg', 0.8);
+            const canvas = document.getElementById('tempCanvas'), video = document.getElementById('camera-video');
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            if(currentFacingMode === 'user') { ctx.translate(canvas.width, 0); ctx.scale(-1, 1); }
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height); ctx.setTransform(1, 0, 0, 1, 0, 0);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
             const emptyIndex = fotos.findIndex(slot => slot === null);
             if(emptyIndex > -1) { fotos[emptyIndex] = dataUrl; renderSlots(); }
             closeCamera();
@@ -360,13 +374,13 @@
         function removeFoto(i) { fotos[i] = null; renderSlots(); }
         function renderSlots() {
             for(let i = 0; i < 6; i++) {
-                const s = document.getElementById(`slot-${i}`); if(!s) continue;
+                const slot = document.getElementById(`slot-${i}`); if(!slot) continue;
                 if(fotos[i]) {
-                    s.innerHTML = `<img src="${fotos[i]}" style="width:100%;height:100%;object-fit:cover;border-radius:8px"><span class="remove-photo" onclick="removeFoto(${i})">&times;</span>`;
-                    s.style.border = "1px solid var(--border-color)";
+                    slot.innerHTML = `<img src="${fotos[i]}" style="width:100%;height:100%;object-fit:cover;border-radius:8px"><span class="remove-photo" onclick="removeFoto(${i})">&times;</span>`;
+                    slot.style.border = "1px solid var(--border-color)";
                 } else {
-                    s.innerHTML = `<i data-lucide="image" style="color:#ccc;width:30px;height:30px"></i>`;
-                    s.style.border = "2px dashed #d1d5db";
+                    slot.innerHTML = `<i data-lucide="image" style="color:#ccc;width:30px;height:30px"></i>`;
+                    slot.style.border = "2px dashed #d1d5db";
                 }
             }
             lucide.createIcons();
