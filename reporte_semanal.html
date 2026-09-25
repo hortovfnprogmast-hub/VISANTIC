@@ -2,42 +2,87 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asignación | VISANTIC</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Reporte Semanal | VISANTIC</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+
     <style>
-        :root { --primary-blue: #058EA6; --light-blue: #e0f2fe; --bg-color: #f8fafc; --text-main: #1e293b; --text-muted: #64748b; --border-color: #e2e8f0; --danger: #dc2626; }
+        :root { --primary-blue: #058EA6; --light-blue: #e0f2fe; --bg-color: #f8fafc; --text-main: #1e293b; --text-muted: #64748b; --border-color: #e2e8f0; --danger: #dc2626; --success: #10b981; }
         body { margin: 0; font-family: 'Inter', sans-serif; background-color: var(--bg-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: white; border-bottom: 1px solid var(--border-color); z-index: 50; position: sticky; top: 0; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: white; border-bottom: 1px solid var(--border-color); z-index: 50; }
         .header-left { display: flex; align-items: center; gap: 15px; }
         .menu-btn { background: none; border: none; cursor: pointer; color: var(--text-main); }
         .header-title { margin: 0; font-size: 15px; font-weight: 700; color: var(--primary-blue); }
         .header-right { display: flex; align-items: center; gap: 12px; }
-        .user-name-top { font-weight: 700; color: var(--primary-blue); font-size: 14px; }
+        .user-name-top { font-weight: 800; color: var(--primary-blue); font-size: 15px; text-transform: uppercase; white-space: nowrap; }
         .user-initial { width: 35px; height: 35px; border-radius: 50%; background-color: var(--primary-blue); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
+        .user-dropdown { position: absolute; top: 60px; right: 15px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid var(--border-color); width: 220px; z-index: 1000; display: none; overflow: hidden; }
+        .user-dropdown.show { display: block; }
+        .user-card { padding: 15px; border-bottom: 1px solid #f1f5f9; }
+        .user-meta .user-name { font-weight: 700; font-size: 14px; color: var(--text-main); }
+        .user-actions .dropdown-link { display: flex; align-items: center; gap: 8px; padding: 12px 15px; color: var(--danger); font-size: 14px; text-decoration: none; font-weight: 500; }
         .main-layout { display: flex; flex: 1; overflow: hidden; }
-        .sidebar { width: 260px; background: white; border-right: 1px solid var(--border-color); overflow-y: auto; transition: transform 0.3s ease; display: flex; flex-direction: column; position: fixed; height: calc(100vh - 60px); z-index: 40; }
-        @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); } }
-        .content { flex: 1; padding: 20px; overflow-y: auto; margin-left: 0; width: 100%; }
-        @media (min-width: 769px) { .content { margin-left: 260px; } }
-        .container { max-width: 1200px; margin: 0 auto; padding-bottom: 80px; }
-        .table-container { background: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border: 1px solid var(--border-color); overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 900px; text-align: left; }
+        .sidebar { width: 260px; background: white; border-right: 1px solid var(--border-color); overflow-y: auto; transition: transform 0.3s ease; display: flex; flex-direction: column; }
+        @media (max-width: 768px) { .sidebar { position: fixed; height: calc(100vh - 60px); transform: translateX(-100%); z-index: 40; } .sidebar.open { transform: translateX(0); } .header-title { display: none; } }
+        .content { flex: 1; padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .container { max-width: 900px; margin: 0 auto; padding-bottom: 80px; }
+        .tabs-container { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+        .tab-btn { background: #eef1f6; border: none; padding: 10px 20px; border-radius: 25px; font-size: 14px; font-weight: 600; color: #555; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; white-space: nowrap; }
+        .tab-btn.active { background: var(--primary-blue) !important; color: #ffffff !important; }
+        .tab-badge { background: #d1d5db; color: #555; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+        .tab-btn.active .tab-badge { background: #ffffff; color: var(--primary-blue); }
+        .form-card { background: #FFFFFF; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 4px 10px rgba(0,0,0,0.03); margin-bottom: 24px; padding: 24px; }
+        .section-title-form { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 700; color: var(--primary-blue); margin: 0 0 20px 0; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
+        .form-input, .form-select, textarea.form-input { width: 100%; padding: 14px 16px; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; color: var(--text-main); box-sizing: border-box; font-family: inherit; outline: none; transition: all 0.2s ease; }
+        .form-input:focus, .form-select:focus, textarea.form-input:focus { background-color: #FFFFFF; border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(5, 142, 166, 0.1); }
+        .form-input[readonly] { background-color: #f1f5f9; color: var(--text-muted); }
+        .btn-guardar { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 15px 20px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; background: var(--success); color: white; border: none; width: 100%; }
+        .btn-enviar { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 15px 20px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; background: var(--primary-blue); color: white; border: none; width: 100%; }
+        .photo-controls { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .btn-photo, .btn-photo-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 14px; transition: all 0.2s; }
+        .btn-photo { background: var(--primary-blue); color: white; border: none; }
+        .btn-photo:hover { background: #046978; }
+        .btn-photo-secondary { background: white; color: #374151; border: 1px solid #d1d5db; }
+        .photo-grid-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px; }
+        .photo-slot { aspect-ratio: 1; border: 2px dashed #d1d5db; border-radius: 8px; background: #f9fafb; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+        .photo-slot img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+        .remove-photo { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.6); color: white; border-radius: 50%; width: 24px; height: 24px; text-align: center; line-height: 22px; cursor: pointer; font-size: 16px; font-weight: bold; z-index: 10; }
+        .global-filters { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .global-filters input { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; }
+        .data-table-container { background: #FFFFFF; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border: 1px solid var(--border-color); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: center; }
         thead { background: var(--light-blue); border-bottom: 1px solid var(--border-color); }
-        th, td { padding: 12px 15px; font-size: 14px; color: var(--text-main); vertical-align: middle; }
-        th { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
+        th, td { padding: 12px 15px; font-size: 14px; color: var(--text-main); }
         tbody tr { border-bottom: 1px solid #f1f5f9; }
-        .form-select-asig { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: var(--bg-color); color: var(--text-main); box-sizing: border-box; }
-        .form-select-asig:disabled { background: #f1f5f9; color: #64748b; cursor: not-allowed; border-style: dashed; }
-        .date-asign { font-size: 10px; color: var(--text-muted); margin-top: 4px; display: block; }
-        .btn-delete-user { background: none; border: none; color: var(--danger); cursor: pointer; padding: 5px; display: inline-flex; align-items: center; }
+        .btn-edit { background: var(--success); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; margin: 2px; }
+        .btn-pdf { background: var(--primary-blue); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; margin: 2px; }
+        #camera-overlay { display: none; position: fixed !important; z-index: 999999 !important; left: 0 !important; top: 0 !important; width: 100vw !important; height: 100vh !important; background-color: rgba(0,0,0,0.95) !important; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+        #camera-overlay.show { display: flex !important; }
+        #camera-stream { width: 100%; max-width: 600px; aspect-ratio: 4/3; background: black; border-radius: 12px; overflow: hidden; position: relative; }
+        #camera-video { width: 100%; height: 100%; object-fit: cover; }
+        #custom-alert { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .modal-card-alert { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 400px; text-align: center; }
+        #alert-btn { width: 100%; padding: 12px; border-radius: 8px; border: none; color: white; background: var(--primary-blue); font-weight: 700; font-size: 14px; cursor: pointer; }
         
-        /* BOTÓN FLOTANTE EDITAR */
-        .fab-edit { position: fixed; bottom: 30px; right: 30px; background: var(--danger); color: white; border: none; border-radius: 50px; padding: 15px 25px; display: flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 999; font-weight: 700; font-family: 'Inter', sans-serif; font-size: 14px; transition: transform 0.2s; }
-        .fab-edit:hover { background: #b91c1c; transform: scale(1.05); }
+        /* BOTÓN FLOTANTE CON TEXTO */
+        .fab-delete { position: fixed; bottom: 30px; right: 30px; background: var(--danger); color: white; border: none; border-radius: 50px; padding: 15px 25px; display: flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 999; font-weight: 700; font-family: 'Inter', sans-serif; font-size: 14px; transition: transform 0.2s; }
+        .fab-delete:hover { background: #b91c1c; transform: scale(1.05); }
+
+        /* MODAL DE CONFIRMACIÓN */
+        #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 10001; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .modal-card-confirm { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .confirm-icon { width: 50px; height: 50px; background: #fee2e2; color: var(--danger); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px auto; }
+        #confirm-title { margin: 0 0 8px 0; font-size: 18px; color: var(--text-main); font-weight: 700; }
+        #confirm-msg { margin: 0 0 24px 0; font-size: 14px; color: var(--text-muted); line-height: 1.5; }
+        .confirm-actions { display: flex; gap: 12px; }
+        #confirm-cancel { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: #f8fafc; color: #334155; font-weight: 700; font-size: 14px; cursor: pointer; }
+        #confirm-ok { flex: 1; padding: 12px; border-radius: 8px; border: none; color: white; background: var(--danger); font-weight: 700; font-size: 14px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -46,11 +91,15 @@
         <div class="header-left">
             <button class="menu-btn" id="toggle-menu"><i data-lucide="menu"></i></button>
             <img src="https://i.ibb.co/8ng1078m/LOGOTIPO.png" alt="Logo VISANTIC" style="height: 35px; object-fit: contain;">
-            <h1 class="header-title">Asignación de Proyectos</h1>
+            <h1 class="header-title" id="header-title">Reporte Semanal</h1>
         </div>
         <div class="header-right">
             <span class="user-name-top" id="header-username">Cargando...</span>
-            <div class="user-initial" id="user-initial">U</div>
+            <div class="user-initial" id="user-initial-header" onclick="document.getElementById('user-dropdown').classList.toggle('show')">U</div>
+            <div class="user-dropdown" id="user-dropdown">
+                <div class="user-card"><div class="user-meta"><div class="user-name" id="user-dropdown-name">Cargando...</div></div></div>
+                <div class="user-actions"><a href="index.html" class="dropdown-link" onclick="localStorage.clear();"><i data-lucide="log-out" style="width:16px;"></i> Cerrar sesión</a></div>
+            </div>
         </div>
     </header>
 
@@ -58,36 +107,98 @@
         <aside class="sidebar" id="sidebar"></aside>
         <main class="content">
             <div class="container">
-                <div style="margin-bottom: 24px;">
-                    <h1 style="font-size: 24px; font-weight: bold; margin: 0; color: var(--text-main);">Asignar Proyectos a Usuarios</h1>
-                    <p style="color: var(--text-muted); margin: 5px 0 0 0;">Los proyectos ya asignados se bloquean. Da clic en "Editar" para modificarlos.</p>
+                <div class="tabs-container">
+                    <button class="tab-btn active" onclick="cambiarTab('Nuevo reporte')" id="tab-Nuevo reporte"><i data-lucide="plus-circle" style="width: 16px;"></i> Nuevo reporte</button>
+                    <button class="tab-btn" onclick="cambiarTab('Guardados')" id="tab-Guardados">Guardados <span class="tab-badge" id="badge-Borrador">0</span></button>
+                    <button class="tab-btn" onclick="cambiarTab('Realizados')" id="tab-Realizados">Realizados <span class="tab-badge" id="badge-Realizado">0</span></button>
                 </div>
 
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Nombre del Usuario</th>
-                                <th>Proyecto 1</th>
-                                <th>Proyecto 2</th>
-                                <th>Proyecto 3</th>
-                                <th>Proyecto 4</th>
-                                <th>Proyecto 5</th>
-                                <th style="width: 40px;"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-asignacion">
-                            <tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">Cargando usuarios...</td></tr>
-                        </tbody>
-                    </table>
+                <div id="global-filters" class="global-filters" style="display: none;">
+                    <input type="text" id="filter-text" placeholder="Buscar por folio, proyecto, cliente..." style="flex: 1; min-width: 200px;">
+                    <input type="date" id="filter-date">
                 </div>
+
+                <div id="dashboard-ordenes" style="display: none;">
+                    <div class="data-table-container">
+                        <table>
+                            <thead><tr><th style="width:40px;"><input type="checkbox" id="check-all-rep" onclick="toggleAllRep(this)"></th><th>Folio</th><th>Proyecto</th><th>Fecha</th><th>Acción</th></tr></thead>
+                            <tbody id="tabla-mis-ordenes"><tr><td colspan="5" style="padding: 30px; color: var(--text-muted);">Cargando...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <form id="ordenMttoForm" style="display: block;">
+                    <div class="form-card" style="border-left: 4px solid var(--primary-blue);">
+                        <h3 class="section-title-form"><i data-lucide="briefcase"></i> Información General</h3>
+                        <div class="form-group">
+                            <label class="form-label">Proyecto</label>
+                            <select class="form-select" id="proyecto-select" required>
+                                <option value="">Selecciona un proyecto...</option>
+                            </select>
+                            <input type="hidden" id="proyecto-id">
+                            <input type="hidden" id="doc-id-actual">
+                        </div>
+                        <div class="form-group"><label class="form-label">Ubicación (Dirección)</label><input type="text" class="form-input" id="ubicacion-input" readonly placeholder="Se llenará automáticamente"></div>
+                        <div class="form-group"><label class="form-label">Folio de Reporte</label><input type="text" class="form-input" id="folio-reporte" readonly placeholder="Se generará al guardar"></div>
+                        <div class="form-group"><label class="form-label">Fecha y Hora</label><input type="text" class="form-input" id="fecha-hora" readonly></div>
+                        <div class="form-group"><label class="form-label">Frente de Trabajo</label><input type="text" class="form-input" id="frente-trabajo" placeholder="Ej: Zona Norte, Cimentación, etc." required></div>
+                    </div>
+                    <div class="form-card">
+                        <h3 class="section-title-form"><i data-lucide="clipboard-list"></i> Descripción de Actividades o Contingencias</h3>
+                        <div class="form-group"><textarea class="form-input" id="descripcion" rows="5" placeholder="Describe las actividades realizadas o contingencias..." required></textarea></div>
+                    </div>
+                    <div class="form-card">
+                        <h3 class="section-title-form"><i data-lucide="camera"></i> Evidencia Fotográfica (1 a 6 fotos)</h3>
+                        <div class="photo-controls">
+                            <button type="button" class="btn-photo" onclick="triggerCamera()"><i data-lucide="camera"></i> Toma Foto</button>
+                            <button type="button" class="btn-photo-secondary" onclick="triggerFile()"><i data-lucide="upload"></i> Subir Archivo</button>
+                        </div>
+                        <div id="photoGrid" class="photo-grid-slots">
+                            <div class="photo-slot" id="slot-0"><i data-lucide="image" style="color:#ccc; width:30px; height:30px;"></i></div>
+                            <div class="photo-slot" id="slot-1"><i data-lucide="image" style="color:#ccc; width:30px; height:30px;"></i></div>
+                            <div class="photo-slot" id="slot-2"><i data-lucide="image" style="color:#ccc; width:30px; height:30px;"></i></div>
+                            <div class="photo-slot" id="slot-3"><i data-lucide="image" style="color:#ccc; width:30px; height:30px;"></i></div>
+                            <div class="photo-slot" id="slot-4"><i data-lucide="image" style="color:#ccc; width:30px; height:30px;"></i></div>
+                            <div class="photo-slot" id="slot-5"><i data-lucide="image" style="color:#ccc; width:30px; height:30px;"></i></div>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 10px; max-width: 400px; margin-left: auto; margin-right: auto; padding-bottom: 40px;">
+                        <button type="button" id="btn-guardar-borrador" class="btn-guardar" onclick="guardarReporte('Borrador')"><i data-lucide="save"></i> Guardar Borrador</button>
+                        <button type="button" id="btn-enviar-orden" class="btn-enviar" onclick="guardarReporte('En proceso')"><i data-lucide="send"></i> Enviar Reporte</button>
+                    </div>
+                </form>
             </div>
         </main>
     </div>
 
-    <button class="fab-edit" id="fab-edit-btn" onclick="toggleEditMode()">
-        <i data-lucide="edit"></i> Editar
+    <div id="camera-overlay">
+        <div id="camera-stream"><video id="camera-video" autoplay="true" playsinline></video></div>
+        <div style="margin-top: 15px; display: flex; gap: 10px;">
+            <button onclick="closeCamera()" style="padding:10px 20px; border-radius:6px; border:1px solid #d1d5db; background:white; cursor:pointer; font-weight:bold; color: #000;">Cerrar</button>
+            <button onclick="switchCamera()" style="padding:10px 20px; border-radius:6px; border:1px solid #d1d5db; background:#f3f4f6; cursor:pointer; font-weight:bold; color: #000;"><i data-lucide="refresh-cw"></i> Girar</button>
+            <button onclick="captureFoto()" style="padding:10px 20px; border-radius:6px; background:var(--primary-blue); color:white; border:none; cursor:pointer; font-weight:bold;">Capturar</button>
+        </div>
+    </div>
+
+    <button class="fab-delete" onclick="eliminarReportesSeleccionados()">
+        <i data-lucide="trash-2" style="width: 20px; height: 20px;"></i> Eliminar
     </button>
+
+    <div id="custom-confirm">
+        <div class="modal-card-confirm">
+            <div class="confirm-icon"><i data-lucide="alert-triangle" style="width: 28px; height: 28px;"></i></div>
+            <h3 id="confirm-title">¿Eliminar?</h3>
+            <p id="confirm-msg">¿Seguro que deseas eliminar los elementos seleccionados?</p>
+            <div class="confirm-actions">
+                <button id="confirm-cancel">Cancelar</button>
+                <button id="confirm-ok">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="fileInputGlobal" accept="image/*" multiple style="display:none" onchange="processFile(this)">
+    <canvas id="tempCanvas" style="display:none"></canvas>
+    <div id="custom-alert"><div class="modal-card-alert"><h3 id="alert-title" style="margin:0 0 8px 0;font-size:18px;color:var(--text-main);font-weight:700;"></h3><p id="alert-msg" style="margin:0 0 24px 0;font-size:14px;color:var(--text-muted);"></p><button id="alert-btn" onclick="closeAlert()">Aceptar</button></div></div>
 
     <script>
         const firebaseConfig = {
@@ -100,6 +211,22 @@
         };
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        let fotos = [null, null, null, null, null, null];
+        let proyectosCache = {};
+        let misOrdenes = [];
+        let tabActual = 'Nuevo reporte';
+        let currentFacingMode = 'environment';
+        let currentStream;
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const scope = urlParams.get('scope') || 'user'; 
+        const initialTab = urlParams.get('tab') || 'nuevo';
+        const projectFilter = urlParams.get('proyecto') || '';
+        let initialTabName = 'Nuevo reporte';
+        if(initialTab === 'guardados') initialTabName = 'Guardados';
+        if(initialTab === 'realizados') initialTabName = 'Realizados';
 
         function configurarPermisosMenu() {
             const privilegio = localStorage.getItem('privilegio');
@@ -117,132 +244,368 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', async () => {
+        document.addEventListener('DOMContentLoaded', () => {
             if(!localStorage.getItem('usuario')) { window.location.href = 'index.html'; return; }
             const nombre = localStorage.getItem('nombre') || 'Usuario';
-            document.getElementById('user-initial').innerText = nombre.charAt(0).toUpperCase();
-            document.getElementById('header-username').innerText = nombre;
-
-            fetch('menu.html?v=9').then(res => res.text()).then(html => {
+            document.getElementById('user-initial-header').innerText = nombre.charAt(0).toUpperCase();
+            document.getElementById('user-dropdown-name').innerText = nombre;
+            document.getElementById('fecha-hora').value = new Date().toLocaleString('es-MX');
+            
+            // LÓGICA GLOBAL VS USUARIO
+            if(scope === 'global') {
+                document.getElementById('header-title').innerText = "Reportes de la Compañía";
+                document.getElementById('header-username').style.display = 'none';
+                document.getElementById('global-filters').style.display = 'flex';
+                document.getElementById('filter-text').addEventListener('input', renderTablaMisOrdenes);
+                document.getElementById('filter-date').addEventListener('change', renderTablaMisOrdenes);
+            } else {
+                document.getElementById('header-username').innerText = nombre;
+            }
+            
+            fetch('menu.html?v=10').then(res => res.text()).then(html => {
                 document.getElementById('sidebar').innerHTML = html;
                 configurarPermisosMenu();
                 lucide.createIcons();
-                document.getElementById('link-asignacion')?.classList.add('active');
+                if(scope === 'global') {
+                    if(initialTab === 'guardados') document.getElementById('link-global-guardados')?.classList.add('active');
+                    if(initialTab === 'realizados') document.getElementById('link-global-realizados')?.classList.add('active');
+                } else {
+                    if(initialTab === 'nuevo') document.getElementById('link-reporte-semanal')?.classList.add('active');
+                    if(initialTab === 'guardados') document.getElementById('link-guardados')?.classList.add('active');
+                    if(initialTab === 'realizados') document.getElementById('link-realizados')?.classList.add('active');
+                }
             });
             document.getElementById('toggle-menu').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
-            
-            await cargarDatos();
+            window.addEventListener('click', (e) => { if (!e.target.matches('#user-initial-header')) { const dd = document.getElementById('user-dropdown'); if(dd.classList.contains('show')) dd.classList.remove('show'); } });
+            cargarProyectos();
+            cargarMisOrdenes();
+            cambiarTab(initialTabName);
+            lucide.createIcons();
         });
 
-        async function cargarDatos() {
+        function showAlert(t, m) { document.getElementById('alert-title').innerText = t; document.getElementById('alert-msg').innerText = m; document.getElementById('custom-alert').style.display = 'flex'; }
+        function closeAlert() { document.getElementById('custom-alert').style.display = 'none'; }
+
+        function showConfirm(title, msg, onConfirm) {
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-msg').innerText = msg;
+            document.getElementById('custom-confirm').style.display = 'flex';
+            lucide.createIcons();
+            document.getElementById('confirm-ok').onclick = function() {
+                document.getElementById('custom-confirm').style.display = 'none';
+                onConfirm();
+            };
+            document.getElementById('confirm-cancel').onclick = function() {
+                document.getElementById('custom-confirm').style.display = 'none';
+            };
+        }
+
+        async function cargarProyectos() {
             try {
-                const snapUsers = await db.collection("usuarios").get();
-                const snapProy = await db.collection("proyectos").get();
-                let proyectos = [];
-                snapProy.forEach(doc => proyectos.push({ id: doc.id, nombre: doc.data().proyecto || 'Sin nombre' }));
-
-                const tbody = document.getElementById('tabla-asignacion');
-                tbody.innerHTML = '';
-
-                if (snapUsers.empty) {
-                    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">No hay usuarios registrados.</td></tr>`;
-                    return;
+                const usuarioId = localStorage.getItem('usuario');
+                const userDoc = await db.collection("usuarios").doc(usuarioId).get();
+                let asignados = [];
+                if (userDoc.exists && userDoc.data().proyectos_asignados) {
+                    asignados = userDoc.data().proyectos_asignados;
                 }
-
-                snapUsers.forEach(docU => {
-                    const userData = docU.data();
-                    const userId = docU.id;
-                    const userName = userData.nombre || userId;
-                    const asignados = userData.proyectos_asignados || [];
-                    const fechas = userData.fechas_asignacion || [];
-
-                    const tr = document.createElement('tr');
-                    let selectsHtml = '';
-                    for (let i = 0; i < 5; i++) {
-                        const projId = asignados[i] || '';
-                        const fecha = fechas[i] || '';
-                        const isDisabled = projId !== ''; // Bloquear si ya tiene proyecto
-
-                        selectsHtml += `<td>
-                            <select class="form-select-asig" data-user="${userId}" data-slot="${i}" data-oldval="${projId}" ${isDisabled ? 'disabled' : ''} onchange="guardarAsignacion('${userId}')">
-                                <option value="">- Sin asignar -</option>
-                                ${proyectos.map(p => `<option value="${p.id}" ${projId === p.id ? 'selected' : ''}>${p.nombre}</option>`).join('')}
-                            </select>
-                            ${fecha ? `<span class="date-asign">Asignado: ${new Date(fecha).toLocaleString('es-MX')}</span>` : ''}
-                        </td>`;
+                
+                const snap = await db.collection("proyectos").get();
+                const select = document.getElementById('proyecto-select');
+                snap.forEach(doc => {
+                    const p = doc.data();
+                    if (asignados.length === 0 || asignados.includes(doc.id)) {
+                        proyectosCache[doc.id] = p;
+                        const option = document.createElement('option');
+                        option.value = doc.id;
+                        option.innerText = p.proyecto || 'Sin nombre';
+                        select.appendChild(option);
                     }
-                    tr.innerHTML = `<td style="font-weight: 600;">${userName}</td>${selectsHtml}<td><button class="btn-delete-user" onclick="eliminarUsuario('${userId}')"><i data-lucide="trash-2" style="width:16px"></i></button></td>`;
-                    tbody.appendChild(tr);
                 });
-                lucide.createIcons();
-
             } catch (e) { console.error(e); }
         }
 
-        function toggleEditMode() {
-            const btn = document.getElementById('fab-edit-btn');
-            const isEditMode = btn.innerText.includes('Guardar');
-            
-            if (isEditMode) {
-                // Cambiar a modo lectura (bloquear los que tienen proyecto)
-                document.querySelectorAll('.form-select-asig').forEach(s => {
-                    if(s.value !== '') s.disabled = true;
-                });
-                btn.innerHTML = '<i data-lucide="edit"></i> Editar';
-                btn.style.background = '#dc2626'; // Rojo
-                cargarDatos(); // Recargar para mostrar fechas actualizadas
+        document.getElementById('proyecto-select').addEventListener('change', function() {
+            const id = this.value;
+            if(id && proyectosCache[id]) {
+                document.getElementById('ubicacion-input').value = proyectosCache[id].direccion_completa || 'Sin dirección';
+                document.getElementById('proyecto-id').value = id;
             } else {
-                // Cambiar a modo edición (desbloquear todo)
-                document.querySelectorAll('.form-select-asig').forEach(s => s.disabled = false);
-                btn.innerHTML = '<i data-lucide="save"></i> Guardar';
-                btn.style.background = '#10b981'; // Verde
+                document.getElementById('ubicacion-input').value = '';
+                document.getElementById('proyecto-id').value = '';
+            }
+        });
+
+        function triggerFile() { if(fotos.filter(f => f !== null).length < 6) document.getElementById('fileInputGlobal').click(); else showAlert("Límite", "Máximo 6 fotos.", false); }
+        function processFile(input) {
+            if(!input.files || input.files.length === 0) return;
+            const files = Array.from(input.files);
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        let w = img.width, h = img.height; const maxSize = 800;
+                        if(w > maxSize || h > maxSize) { if(w > h) { h = (h/w)*maxSize; w = maxSize; } else { w = (w/h)*maxSize; h = maxSize; } }
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                        const emptyIndex = fotos.findIndex(slot => slot === null);
+                        if(emptyIndex > -1) { fotos[emptyIndex] = dataUrl; renderSlots(); }
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+            input.value = '';
+        }
+
+        async function triggerCamera() { if(fotos.filter(f => f !== null).length >= 6) { showAlert("Límite", "Máximo 6 fotos.", false); return; } await startCamera(); }
+        async function startCamera() {
+            if(currentStream) { currentStream.getTracks().forEach(t => t.stop()); }
+            try { currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode } }); document.getElementById('camera-video').srcObject = currentStream; document.getElementById('camera-overlay').classList.add('show'); } catch(e) { showAlert("Error", "Cámara no disponible.", false); }
+        }
+        function switchCamera() { currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment'; startCamera(); }
+        function closeCamera() { if(currentStream) { currentStream.getTracks().forEach(t => t.stop()); } document.getElementById('camera-overlay').classList.remove('show'); }
+        function captureFoto() {
+            const c = document.getElementById('tempCanvas'), v = document.getElementById('camera-video');
+            c.width = v.videoWidth; c.height = v.videoHeight;
+            const ctx = c.getContext('2d');
+            if(currentFacingMode === 'user') { ctx.translate(c.width, 0); ctx.scale(-1, 1); }
+            ctx.drawImage(v, 0, 0, c.width, c.height); ctx.setTransform(1, 0, 0, 1, 0, 0);
+            const dataUrl = c.toDataURL('image/jpeg', 0.8);
+            const emptyIndex = fotos.findIndex(slot => slot === null);
+            if(emptyIndex > -1) { fotos[emptyIndex] = dataUrl; renderSlots(); }
+            closeCamera();
+        }
+
+        function removeFoto(i) { fotos[i] = null; renderSlots(); }
+        function renderSlots() {
+            for(let i = 0; i < 6; i++) {
+                const s = document.getElementById(`slot-${i}`); if(!s) continue;
+                if(fotos[i]) {
+                    s.innerHTML = `<img src="${fotos[i]}" style="width:100%;height:100%;object-fit:cover;border-radius:8px"><span class="remove-photo" onclick="removeFoto(${i})">&times;</span>`;
+                    s.style.border = "1px solid var(--border-color)";
+                } else {
+                    s.innerHTML = `<i data-lucide="image" style="color:#ccc;width:30px;height:30px"></i>`;
+                    s.style.border = "2px dashed #d1d5db";
+                }
             }
             lucide.createIcons();
         }
 
-        async function guardarAsignacion(userId) {
+        function getGPS() {
+            return new Promise((resolve) => {
+                if (!navigator.geolocation) { resolve("Ubicación no soportada"); } 
+                else { navigator.geolocation.getCurrentPosition((pos) => resolve(`${pos.coords.latitude}, ${pos.coords.longitude}`), () => resolve("Ubicación no disponible")); }
+            });
+        }
+
+        function cargarMisOrdenes() {
+            let query = db.collection("reportes_semanales");
+            if (scope !== 'global') { query = query.where("residente_id", "==", localStorage.getItem('usuario')); }
+            query.get().then(q => {
+                misOrdenes = [];
+                q.forEach(d => { misOrdenes.push({ id_doc: d.id, ...d.data() }); });
+                misOrdenes.sort((a,b) => (b.fecha_creacion||"").localeCompare(a.fecha_creacion||""));
+                actualizarBadges();
+                if(tabActual !== 'Nuevo reporte') renderTablaMisOrdenes();
+            }).catch(e => {
+                console.error("Error cargando órdenes:", e);
+                document.getElementById('tabla-mis-ordenes').innerHTML = `<tr><td colspan="5" style="padding:30px;color:var(--danger)">Error al cargar (Revisa reglas de Firebase).</td></tr>`;
+            });
+        }
+
+        function actualizarBadges() {
+            let b = 0, r = 0;
+            misOrdenes.forEach(o => { if(o.estado === 'Borrador') b++; else if(o.estado === 'En proceso') r++; });
+            document.getElementById('badge-Borrador').innerText = b;
+            document.getElementById('badge-Realizado').innerText = r;
+        }
+
+        function cambiarTab(e, isEdit=false) {
+            if (e === 'Nuevo reporte' && scope === 'global') { window.location.href = 'reporte_semanal.html?tab=nuevo'; return; }
+            tabActual = e;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            const a = document.getElementById(`tab-${e}`); if(a) a.classList.add('active');
+            if(e === 'Nuevo reporte') { document.getElementById('dashboard-ordenes').style.display = 'none'; document.getElementById('ordenMttoForm').style.display = 'block'; if(!isEdit) limpiarFormulario(); } 
+            else { document.getElementById('ordenMttoForm').style.display = 'none'; document.getElementById('dashboard-ordenes').style.display = 'block'; renderTablaMisOrdenes(); }
+        }
+
+        function toggleAllRep(source) {
+            document.querySelectorAll('.check-rep').forEach(cb => cb.checked = source.checked);
+        }
+
+        function renderTablaMisOrdenes() {
+            const t = document.getElementById('tabla-mis-ordenes'); t.innerHTML = '';
+            const searchText = document.getElementById('filter-text')?.value.toLowerCase() || '';
+            const filterDate = document.getElementById('filter-date')?.value || '';
+            let filtered = misOrdenes.filter(o => {
+                if(tabActual === 'Guardados' && o.estado !== 'Borrador') return false;
+                if(tabActual === 'Realizados' && o.estado !== 'En proceso') return false;
+                if(projectFilter && o.proyecto !== projectFilter) return false;
+                if(searchText) { const text = `${o.folio} ${o.proyecto} ${o.cliente} ${o.fecha_hora}`.toLowerCase(); if (!text.includes(searchText)) return false; }
+                if(filterDate) { if (!o.fecha_creacion || !o.fecha_creacion.startsWith(filterDate)) return false; }
+                return true;
+            });
+            if(filtered.length === 0) { t.innerHTML = `<tr><td colspan="5" style="padding:30px;color:var(--text-muted)">Sin reportes en esta sección</td></tr>`; return; }
+            filtered.forEach(o => {
+                let a = `<div style="display:flex;gap:5px;justify-content:center;">
+                    <button type="button" onclick="cargarBorrador('${o.id_doc}')" class="btn-edit"><i data-lucide="edit-2" style="width:14px"></i> Editar</button>
+                    ${o.estado === 'En proceso' ? `<button type="button" onclick="verPDFOrden('${o.id_doc}')" class="btn-pdf"><i data-lucide="file-text" style="width:14px"></i> PDF</button>` : ''}
+                </div>`;
+                const r = document.createElement('tr');
+                r.innerHTML = `<td><input type="checkbox" class="check-rep" data-id="${o.id_doc}"></td><td style="font-weight:bold">${o.folio||''}</td><td>${o.proyecto||''}</td><td>${o.fecha_hora||''}</td><td>${a}</td>`;
+                t.appendChild(r);
+            });
+            lucide.createIcons();
+        }
+
+        function limpiarFormulario() {
+            document.getElementById('ordenMttoForm').reset();
+            document.getElementById('doc-id-actual').value = '';
+            document.getElementById('folio-reporte').value = '';
+            document.getElementById('fecha-hora').value = new Date().toLocaleString('es-MX');
+            fotos = [null, null, null, null, null, null];
+            renderSlots();
+        }
+
+        function cargarBorrador(id) {
+            const o = misOrdenes.find(x => x.id_doc === id);
+            if(!o) return;
+            cambiarTab('Nuevo reporte', true);
+            document.getElementById('doc-id-actual').value = o.id_doc;
+            document.getElementById('proyecto-select').value = o.id_proyecto || '';
+            document.getElementById('proyecto-select').dispatchEvent(new Event('change'));
+            document.getElementById('folio-reporte').value = o.folio || '';
+            document.getElementById('fecha-hora').value = o.fecha_hora || '';
+            document.getElementById('frente-trabajo').value = o.frente_trabajo || '';
+            document.getElementById('descripcion').value = o.descripcion || '';
+            fotos = o.fotos && o.fotos.length ? [...o.fotos] : [];
+            while(fotos.length < 6) fotos.push(null);
+            renderSlots();
+        }
+
+        async function guardarReporte(estado) {
+            const projId = document.getElementById('proyecto-id').value;
+            const desc = document.getElementById('descripcion').value;
+            const frente = document.getElementById('frente-trabajo').value;
+            const fotosValidas = fotos.filter(f => f !== null);
+            const docId = document.getElementById('doc-id-actual').value;
+            const btnGuardar = document.getElementById('btn-guardar-borrador');
+            const btnEnviar = document.getElementById('btn-enviar-orden');
+
+            if(!projId || !desc || !frente) { showAlert("Atención", "Completa Proyecto, Frente de Trabajo y Descripción.", false); return; }
+            if(fotosValidas.length < 1) { showAlert("Atención", "Debes subir al menos 1 fotografía.", false); return; }
+
             try {
-                const selects = document.querySelectorAll(`.form-select-asig[data-user="${userId}"]`);
-                let nuevosProyectos = [];
-                let nuevasFechas = [];
-                let now = new Date().toISOString();
-                
-                selects.forEach(s => { 
-                    if(s.value) {
-                        nuevosProyectos.push(s.value);
-                        let oldVal = s.dataset.oldval || '';
-                        // Si es un proyecto nuevo o no tenía fecha, guardar la fecha actual
-                        if(s.value !== oldVal || !s.dataset.date) {
-                            nuevasFechas.push(now);
-                            s.dataset.oldval = s.value; // Actualizar valor viejo
-                        } else {
-                            nuevasFechas.push(s.dataset.date || now);
-                        }
+                let folio = document.getElementById('folio-reporte').value;
+                let gps = "No solicitado";
+
+                if(estado === 'En proceso' || (estado === 'Borrador' && !docId)) {
+                    if(!folio) {
+                        const projRef = db.collection('proyectos').doc(projId);
+                        await db.runTransaction(async (t) => {
+                            const doc = await t.get(projRef);
+                            if (!doc.exists) return;
+                            let count = doc.data().folio_contador || 0;
+                            count++;
+                            t.update(projRef, { folio_contador: count });
+                            folio = count.toString().padStart(3, '0');
+                        });
+                        document.getElementById('folio-reporte').value = folio;
                     }
-                });
+                }
+
+                if(estado === 'En proceso') { gps = await getGPS(); }
+
+                btnGuardar.disabled = true; btnEnviar.disabled = true;
+                btnGuardar.innerText = 'Subiendo imágenes...'; btnEnviar.innerText = 'Subiendo imágenes...';
+
+                let fotosURLs = [];
+                for (let i = 0; i < fotosValidas.length; i++) {
+                    if(fotosValidas[i].startsWith('http')) {
+                        fotosURLs.push(fotosValidas[i]);
+                    } else {
+                        const storageRef = storage.ref();
+                        const fileRef = storageRef.child(`reportes_fotos/${Date.now()}_${i}.jpg`);
+                        const snapshot = await fileRef.putString(fotosValidas[i], 'data_url');
+                        const url = await snapshot.ref.getDownloadURL();
+                        fotosURLs.push(url);
+                    }
+                }
+
+                btnGuardar.innerText = 'Guardando reporte...'; btnEnviar.innerText = 'Guardando reporte...';
+
+                const fechaHora = document.getElementById('fecha-hora').value;
+                const dataToSave = {
+                    id_proyecto: projId, proyecto: proyectosCache[projId].proyecto, cliente: proyectosCache[projId].cliente,
+                    contrato: proyectosCache[projId].numero_documento || '', direccion: proyectosCache[projId].direccion_completa,
+                    url_portada: proyectosCache[projId].url_portada || '', folio: folio, fecha_hora: fechaHora,
+                    frente_trabajo: frente, descripcion: desc, fotos: fotosURLs, estado: estado,
+                    residente_id: localStorage.getItem('usuario'), residente_nombre: localStorage.getItem('nombre') || 'Usuario',
+                    fecha_creacion: new Date().toISOString()
+                };
                 
-                await db.collection("usuarios").doc(userId).set({
-                    proyectos_asignados: nuevosProyectos,
-                    fechas_asignacion: nuevasFechas
-                }, { merge: true });
-                
-                console.log("Asignación guardada para", userId);
-            } catch (e) {
-                console.error("Error guardando asignación:", e);
-                alert("Error al guardar: " + e.message);
+                if(estado === 'En proceso') dataToSave.ubicacion_gps = gps;
+
+                if(docId) { await db.collection("reportes_semanales").doc(docId).set(dataToSave, { merge: true }); } 
+                else { const newDoc = await db.collection("reportes_semanales").add(dataToSave); document.getElementById('doc-id-actual').value = newDoc.id; }
+
+                btnGuardar.disabled = false; btnEnviar.disabled = false;
+                btnGuardar.innerHTML = '<i data-lucide="save"></i> Guardar Borrador';
+                btnEnviar.innerHTML = '<i data-lucide="send"></i> Enviar Reporte';
+                lucide.createIcons();
+
+                if(estado === 'En proceso') {
+                    const datosPDF = { ...dataToSave, ubicacion_gps: gps };
+                    localStorage.setItem('DatosReportePDF', JSON.stringify(datosPDF));
+                    showAlert("Procesando", "Reporte enviado. Preparando PDF, espera 3 segundos...", true);
+                    setTimeout(() => { 
+                        window.open('PDFdereporsem.html', '_blank'); 
+                        cargarMisOrdenes(); 
+                        cambiarTab('Realizados'); 
+                    }, 3000);
+                } else {
+                    showAlert("Éxito", "Borrador guardado correctamente.", true);
+                    setTimeout(() => { cargarMisOrdenes(); cambiarTab('Guardados'); }, 1000);
+                }
+
+            } catch (error) {
+                console.error(error);
+                showAlert("Error", "No se pudo guardar: " + error.message, false);
+                btnGuardar.disabled = false; btnEnviar.disabled = false;
+                btnGuardar.innerHTML = '<i data-lucide="save"></i> Guardar Borrador';
+                btnEnviar.innerHTML = '<i data-lucide="send"></i> Enviar Reporte';
+                lucide.createIcons();
             }
         }
 
-        async function eliminarUsuario(userId) {
-            if (confirm(`¿Seguro que deseas eliminar a este usuario (${userId})?`)) {
-                try {
-                    await db.collection("usuarios").doc(userId).delete();
-                    alert("Usuario eliminado.");
-                    cargarDatos();
-                } catch (e) {
-                    alert("Error: " + e.message);
-                }
+        function eliminarReportesSeleccionados() {
+            const checks = document.querySelectorAll('.check-rep:checked');
+            if (checks.length === 0) { 
+                showConfirm("Atención", "Selecciona al menos un reporte para eliminar.", () => {}); 
+                return; 
             }
+            
+            showConfirm(`Eliminar ${checks.length} reporte(s)`, "Esta acción no se puede deshacer. ¿Deseas continuar?", async () => {
+                try {
+                    for (let check of checks) {
+                        await db.collection("reportes_semanales").doc(check.dataset.id).delete();
+                    }
+                    showAlert("Éxito", "Reportes eliminados.", true);
+                    cargarMisOrdenes();
+                } catch (e) { 
+                    showAlert("Error", "No se pudo eliminar: " + e.message, false); 
+                }
+            });
+        }
+
+        function verPDFOrden(id) {
+            const orden = misOrdenes.find(x => x.id_doc === id);
+            if(!orden) { showAlert("Error", "Reporte no encontrado.", false); return; }
+            localStorage.setItem('DatosReportePDF', JSON.stringify(orden));
+            window.open('PDFdereporsem.html', '_blank');
         }
     </script>
 </body>
