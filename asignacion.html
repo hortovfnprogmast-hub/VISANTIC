@@ -9,7 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
-        :root { --primary-blue: #058EA6; --light-blue: #e0f2fe; --bg-color: #f8fafc; --text-main: #1e293b; --text-muted: #64748b; --border-color: #e2e8f0; }
+        :root { --primary-blue: #058EA6; --light-blue: #e0f2fe; --bg-color: #f8fafc; --text-main: #1e293b; --text-muted: #64748b; --border-color: #e2e8f0; --danger: #dc2626; }
         body { margin: 0; font-family: 'Inter', sans-serif; background-color: var(--bg-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: white; border-bottom: 1px solid var(--border-color); z-index: 50; position: sticky; top: 0; }
         .header-left { display: flex; align-items: center; gap: 15px; }
@@ -23,14 +23,21 @@
         @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); } }
         .content { flex: 1; padding: 20px; overflow-y: auto; margin-left: 0; width: 100%; }
         @media (min-width: 769px) { .content { margin-left: 260px; } }
-        .container { max-width: 1200px; margin: 0 auto; }
+        .container { max-width: 1200px; margin: 0 auto; padding-bottom: 80px; }
         .table-container { background: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border: 1px solid var(--border-color); overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 800px; text-align: left; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; text-align: left; }
         thead { background: var(--light-blue); border-bottom: 1px solid var(--border-color); }
-        th, td { padding: 12px 15px; font-size: 14px; color: var(--text-main); }
+        th, td { padding: 12px 15px; font-size: 14px; color: var(--text-main); vertical-align: middle; }
         th { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
         tbody tr { border-bottom: 1px solid #f1f5f9; }
         .form-select-asig { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: var(--bg-color); color: var(--text-main); box-sizing: border-box; }
+        .form-select-asig:disabled { background: #f1f5f9; color: #64748b; cursor: not-allowed; border-style: dashed; }
+        .date-asign { font-size: 10px; color: var(--text-muted); margin-top: 4px; display: block; }
+        .btn-delete-user { background: none; border: none; color: var(--danger); cursor: pointer; padding: 5px; display: inline-flex; align-items: center; }
+        
+        /* BOTÓN FLOTANTE EDITAR */
+        .fab-edit { position: fixed; bottom: 30px; right: 30px; background: var(--danger); color: white; border: none; border-radius: 50px; padding: 15px 25px; display: flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 999; font-weight: 700; font-family: 'Inter', sans-serif; font-size: 14px; transition: transform 0.2s; }
+        .fab-edit:hover { background: #b91c1c; transform: scale(1.05); }
     </style>
 </head>
 <body>
@@ -53,7 +60,7 @@
             <div class="container">
                 <div style="margin-bottom: 24px;">
                     <h1 style="font-size: 24px; font-weight: bold; margin: 0; color: var(--text-main);">Asignar Proyectos a Usuarios</h1>
-                    <p style="color: var(--text-muted); margin: 5px 0 0 0;">Selecciona hasta 5 proyectos para cada usuario.</p>
+                    <p style="color: var(--text-muted); margin: 5px 0 0 0;">Los proyectos ya asignados se bloquean. Da clic en "Editar" para modificarlos.</p>
                 </div>
 
                 <div class="table-container">
@@ -66,16 +73,21 @@
                                 <th>Proyecto 3</th>
                                 <th>Proyecto 4</th>
                                 <th>Proyecto 5</th>
+                                <th style="width: 40px;"></th>
                             </tr>
                         </thead>
                         <tbody id="tabla-asignacion">
-                            <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Cargando usuarios...</td></tr>
+                            <tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">Cargando usuarios...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </main>
     </div>
+
+    <button class="fab-edit" id="fab-edit-btn" onclick="toggleEditMode()">
+        <i data-lucide="edit"></i> Editar
+    </button>
 
     <script>
         const firebaseConfig = {
@@ -111,7 +123,7 @@
             document.getElementById('user-initial').innerText = nombre.charAt(0).toUpperCase();
             document.getElementById('header-username').innerText = nombre;
 
-            fetch('menu.html?v=8').then(res => res.text()).then(html => {
+            fetch('menu.html?v=9').then(res => res.text()).then(html => {
                 document.getElementById('sidebar').innerHTML = html;
                 configurarPermisosMenu();
                 lucide.createIcons();
@@ -133,7 +145,7 @@
                 tbody.innerHTML = '';
 
                 if (snapUsers.empty) {
-                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">No hay usuarios registrados.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">No hay usuarios registrados.</td></tr>`;
                     return;
                 }
 
@@ -142,37 +154,94 @@
                     const userId = docU.id;
                     const userName = userData.nombre || userId;
                     const asignados = userData.proyectos_asignados || [];
+                    const fechas = userData.fechas_asignacion || [];
 
                     const tr = document.createElement('tr');
                     let selectsHtml = '';
                     for (let i = 0; i < 5; i++) {
+                        const projId = asignados[i] || '';
+                        const fecha = fechas[i] || '';
+                        const isDisabled = projId !== ''; // Bloquear si ya tiene proyecto
+
                         selectsHtml += `<td>
-                            <select class="form-select-asig" data-user="${userId}" data-slot="${i}" onchange="guardarAsignacion('${userId}')">
+                            <select class="form-select-asig" data-user="${userId}" data-slot="${i}" data-oldval="${projId}" ${isDisabled ? 'disabled' : ''} onchange="guardarAsignacion('${userId}')">
                                 <option value="">- Sin asignar -</option>
-                                ${proyectos.map(p => `<option value="${p.id}" ${asignados[i] === p.id ? 'selected' : ''}>${p.nombre}</option>`).join('')}
+                                ${proyectos.map(p => `<option value="${p.id}" ${projId === p.id ? 'selected' : ''}>${p.nombre}</option>`).join('')}
                             </select>
+                            ${fecha ? `<span class="date-asign">Asignado: ${new Date(fecha).toLocaleString('es-MX')}</span>` : ''}
                         </td>`;
                     }
-                    tr.innerHTML = `<td style="font-weight: 600;">${userName}</td>${selectsHtml}`;
+                    tr.innerHTML = `<td style="font-weight: 600;">${userName}</td>${selectsHtml}<td><button class="btn-delete-user" onclick="eliminarUsuario('${userId}')"><i data-lucide="trash-2" style="width:16px"></i></button></td>`;
                     tbody.appendChild(tr);
                 });
+                lucide.createIcons();
 
             } catch (e) { console.error(e); }
+        }
+
+        function toggleEditMode() {
+            const btn = document.getElementById('fab-edit-btn');
+            const isEditMode = btn.innerText.includes('Guardar');
+            
+            if (isEditMode) {
+                // Cambiar a modo lectura (bloquear los que tienen proyecto)
+                document.querySelectorAll('.form-select-asig').forEach(s => {
+                    if(s.value !== '') s.disabled = true;
+                });
+                btn.innerHTML = '<i data-lucide="edit"></i> Editar';
+                btn.style.background = '#dc2626'; // Rojo
+                cargarDatos(); // Recargar para mostrar fechas actualizadas
+            } else {
+                // Cambiar a modo edición (desbloquear todo)
+                document.querySelectorAll('.form-select-asig').forEach(s => s.disabled = false);
+                btn.innerHTML = '<i data-lucide="save"></i> Guardar';
+                btn.style.background = '#10b981'; // Verde
+            }
+            lucide.createIcons();
         }
 
         async function guardarAsignacion(userId) {
             try {
                 const selects = document.querySelectorAll(`.form-select-asig[data-user="${userId}"]`);
                 let nuevosProyectos = [];
-                selects.forEach(s => { if(s.value) nuevosProyectos.push(s.value); });
+                let nuevasFechas = [];
+                let now = new Date().toISOString();
+                
+                selects.forEach(s => { 
+                    if(s.value) {
+                        nuevosProyectos.push(s.value);
+                        let oldVal = s.dataset.oldval || '';
+                        // Si es un proyecto nuevo o no tenía fecha, guardar la fecha actual
+                        if(s.value !== oldVal || !s.dataset.date) {
+                            nuevasFechas.push(now);
+                            s.dataset.oldval = s.value; // Actualizar valor viejo
+                        } else {
+                            nuevasFechas.push(s.dataset.date || now);
+                        }
+                    }
+                });
                 
                 await db.collection("usuarios").doc(userId).set({
-                    proyectos_asignados: nuevosProyectos
+                    proyectos_asignados: nuevosProyectos,
+                    fechas_asignacion: nuevasFechas
                 }, { merge: true });
                 
                 console.log("Asignación guardada para", userId);
             } catch (e) {
                 console.error("Error guardando asignación:", e);
+                alert("Error al guardar: " + e.message);
+            }
+        }
+
+        async function eliminarUsuario(userId) {
+            if (confirm(`¿Seguro que deseas eliminar a este usuario (${userId})?`)) {
+                try {
+                    await db.collection("usuarios").doc(userId).delete();
+                    alert("Usuario eliminado.");
+                    cargarDatos();
+                } catch (e) {
+                    alert("Error: " + e.message);
+                }
             }
         }
     </script>
