@@ -33,6 +33,10 @@
         tbody tr:hover { background-color: #f8fafc; }
         .badge-count { background: var(--primary-blue); color: white; padding: 4px 12px; border-radius: 12px; font-weight: 700; font-size: 12px; text-decoration: none; display: inline-block; }
         .btn-edit-red { background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; text-decoration: none; }
+        
+        /* BOTÓN FLOTANTE PARA ELIMINAR */
+        .fab-delete { position: fixed; bottom: 30px; right: 30px; background: var(--danger); color: white; border: none; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 999; transition: transform 0.2s; }
+        .fab-delete:hover { background: #b91c1c; transform: scale(1.1); }
     </style>
 </head>
 <body>
@@ -57,7 +61,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 24px;">
                     <div>
                         <h1 style="font-size: 24px; font-weight: bold; margin: 0; color: var(--text-main);">Listado de Proyectos</h1>
-                        <p style="color: var(--text-muted); margin: 5px 0 0 0;">Visualiza y edita los proyectos</p>
+                        <p style="color: var(--text-muted); margin: 5px 0 0 0;">Visualiza, edita o elimina los proyectos</p>
                     </div>
                     <a href="proyectonuevo.html" style="background: var(--primary-blue); color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
                         <i data-lucide="plus-circle" style="width: 18px;"></i> Nuevo Proyecto
@@ -68,22 +72,27 @@
                     <table>
                         <thead>
                             <tr>
+                                <th style="width: 40px;"><input type="checkbox" id="check-all-proy" onclick="toggleAll(this)"></th>
                                 <th>Cliente</th>
                                 <th>Proyecto</th>
                                 <th>Inicio</th>
                                 <th>Término</th>
-                                <th style="text-align: center;">Reportes Realizados</th>
+                                <th style="text-align: center;">Reportes</th>
                                 <th style="text-align: center;">Acción</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-proyectos">
-                            <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Cargando proyectos...</td></tr>
+                            <tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">Cargando proyectos...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </main>
     </div>
+
+    <button class="fab-delete" onclick="eliminarProyectosSeleccionados()" title="Eliminar Seleccionados">
+        <i data-lucide="trash-2" style="width: 24px; height: 24px;"></i>
+    </button>
 
     <script>
         const firebaseConfig = {
@@ -97,18 +106,16 @@
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.firestore();
 
-        // Función global para validar menús
         function configurarPermisosMenu() {
             const privilegio = localStorage.getItem('privilegio');
             const menuMisReportes = document.getElementById('menu-mis-reportes');
             const menuAdmin = document.getElementById('menu-administracion');
             const menuGlobal = document.getElementById('menu-reportes-compania');
-
-            if (privilegio === '1') { // Administrador
+            if (privilegio === '1') {
                 if(menuMisReportes) menuMisReportes.style.display = 'none';
                 if(menuAdmin) menuAdmin.style.display = 'block';
                 if(menuGlobal) menuGlobal.style.display = 'block';
-            } else { // Residente (Privilegio 2 o cualquier otro)
+            } else {
                 if(menuMisReportes) menuMisReportes.style.display = 'block';
                 if(menuAdmin) menuAdmin.style.display = 'none';
                 if(menuGlobal) menuGlobal.style.display = 'none';
@@ -121,16 +128,21 @@
             document.getElementById('user-initial').innerText = nombre.charAt(0).toUpperCase();
             document.getElementById('header-username').innerText = nombre;
 
-            fetch('menu.html?v=6').then(res => res.text()).then(html => {
+            fetch('menu.html?v=8').then(res => res.text()).then(html => {
                 document.getElementById('sidebar').innerHTML = html;
-                configurarPermisosMenu(); // Aplicar permisos
+                configurarPermisosMenu();
                 lucide.createIcons();
                 document.getElementById('link-proyectos')?.classList.add('active');
             });
             document.getElementById('toggle-menu').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
             
             cargarDatos();
+            lucide.createIcons();
         });
+
+        function toggleAll(source) {
+            document.querySelectorAll('.check-proy').forEach(cb => cb.checked = source.checked);
+        }
 
         async function cargarDatos() {
             try {
@@ -149,7 +161,7 @@
                 tbody.innerHTML = '';
 
                 if (proyectos.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">No hay proyectos dados de alta.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">No hay proyectos.</td></tr>`;
                     return;
                 }
 
@@ -157,26 +169,36 @@
                     const numRep = conteoReportes[p.proyecto] || 0;
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
+                        <td><input type="checkbox" class="check-proy" data-id="${p.id}"></td>
                         <td>${p.cliente || ''}</td>
                         <td style="font-weight: 600;">${p.proyecto || ''}</td>
                         <td>${p.fecha_inicio || ''}</td>
                         <td>${p.fecha_termino || ''}</td>
                         <td style="text-align: center;">
-                            <a href="reporte_semanal.html?tab=realizados&scope=global&proyecto=${encodeURIComponent(p.proyecto)}" class="badge-count">${numRep} Reportes</a>
+                            <a href="reporte_semanal.html?tab=realizados&scope=global&proyecto=${encodeURIComponent(p.proyecto)}" class="badge-count">${numRep}</a>
                         </td>
                         <td style="text-align: center;">
-                            <a href="proyectonuevo.html?edit=${p.id}" class="btn-edit-red">
-                                <i data-lucide="edit"></i> Editar
-                            </a>
+                            <a href="proyectonuevo.html?edit=${p.id}" class="btn-edit-red"><i data-lucide="edit"></i> Editar</a>
                         </td>
                     `;
                     tbody.appendChild(tr);
                 });
                 lucide.createIcons();
+            } catch (e) { console.error(e); }
+        }
 
-            } catch (e) {
-                console.error(e);
-            }
+        async function eliminarProyectosSeleccionados() {
+            const checks = document.querySelectorAll('.check-proy:checked');
+            if (checks.length === 0) { alert("Selecciona al menos un proyecto para eliminar."); return; }
+            if (!confirm(`¿Seguro que deseas eliminar ${checks.length} proyecto(s)? Esta acción no se puede deshacer.`)) return;
+
+            try {
+                for (let check of checks) {
+                    await db.collection("proyectos").doc(check.dataset.id).delete();
+                }
+                alert("Proyectos eliminados correctamente.");
+                cargarDatos();
+            } catch (e) { alert("Error al eliminar: " + e.message); }
         }
     </script>
 </body>
