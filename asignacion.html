@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asignación | VISANTIC</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+        :root { --primary-blue: #058EA6; --light-blue: #e0f2fe; --bg-color: #f8fafc; --text-main: #1e293b; --text-muted: #64748b; --border-color: #e2e8f0; }
+        body { margin: 0; font-family: 'Inter', sans-serif; background-color: var(--bg-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: white; border-bottom: 1px solid var(--border-color); z-index: 50; position: sticky; top: 0; }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .menu-btn { background: none; border: none; cursor: pointer; color: var(--text-main); }
+        .header-title { margin: 0; font-size: 15px; font-weight: 700; color: var(--primary-blue); }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .user-name-top { font-weight: 700; color: var(--primary-blue); font-size: 14px; }
+        .user-initial { width: 35px; height: 35px; border-radius: 50%; background-color: var(--primary-blue); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
+        .main-layout { display: flex; flex: 1; overflow: hidden; }
+        .sidebar { width: 260px; background: white; border-right: 1px solid var(--border-color); overflow-y: auto; transition: transform 0.3s ease; display: flex; flex-direction: column; position: fixed; height: calc(100vh - 60px); z-index: 40; }
+        @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); } }
+        .content { flex: 1; padding: 20px; overflow-y: auto; margin-left: 0; width: 100%; }
+        @media (min-width: 769px) { .content { margin-left: 260px; } }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .table-container { background: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border: 1px solid var(--border-color); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; text-align: left; }
+        thead { background: var(--light-blue); border-bottom: 1px solid var(--border-color); }
+        th, td { padding: 12px 15px; font-size: 14px; color: var(--text-main); }
+        th { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
+        tbody tr { border-bottom: 1px solid #f1f5f9; }
+        .form-select-asig { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: var(--bg-color); color: var(--text-main); box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-btn" id="toggle-menu"><i data-lucide="menu"></i></button>
+            <img src="https://i.ibb.co/8ng1078m/LOGOTIPO.png" alt="Logo VISANTIC" style="height: 35px; object-fit: contain;">
+            <h1 class="header-title">Asignación de Proyectos</h1>
+        </div>
+        <div class="header-right">
+            <span class="user-name-top" id="header-username">Cargando...</span>
+            <div class="user-initial" id="user-initial">U</div>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <aside class="sidebar" id="sidebar"></aside>
+        <main class="content">
+            <div class="container">
+                <div style="margin-bottom: 24px;">
+                    <h1 style="font-size: 24px; font-weight: bold; margin: 0; color: var(--text-main);">Asignar Proyectos a Usuarios</h1>
+                    <p style="color: var(--text-muted); margin: 5px 0 0 0;">Selecciona hasta 5 proyectos para cada usuario.</p>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nombre del Usuario</th>
+                                <th>Proyecto 1</th>
+                                <th>Proyecto 2</th>
+                                <th>Proyecto 3</th>
+                                <th>Proyecto 4</th>
+                                <th>Proyecto 5</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-asignacion">
+                            <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Cargando usuarios...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjlemFwGQbA3mM7UhOZAVGaam1z1Xixr8",
+            authDomain: "loretoapp-2ca14.firebaseapp.com",
+            projectId: "loretoapp-2ca14",
+            storageBucket: "loretoapp-2ca14.firebasestorage.app",
+            messagingSenderId: "794212467801",
+            appId: "1:794212467801:web:f0bf6fd01579f0aec35d48"
+        };
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        const db = firebase.firestore();
+
+        function configurarPermisosMenu() {
+            const privilegio = localStorage.getItem('privilegio');
+            const menuMisReportes = document.getElementById('menu-mis-reportes');
+            const menuAdmin = document.getElementById('menu-administracion');
+            const menuGlobal = document.getElementById('menu-reportes-compania');
+            if (privilegio === '1') {
+                if(menuMisReportes) menuMisReportes.style.display = 'none';
+                if(menuAdmin) menuAdmin.style.display = 'block';
+                if(menuGlobal) menuGlobal.style.display = 'block';
+            } else {
+                if(menuMisReportes) menuMisReportes.style.display = 'block';
+                if(menuAdmin) menuAdmin.style.display = 'none';
+                if(menuGlobal) menuGlobal.style.display = 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if(!localStorage.getItem('usuario')) { window.location.href = 'index.html'; return; }
+            const nombre = localStorage.getItem('nombre') || 'Usuario';
+            document.getElementById('user-initial').innerText = nombre.charAt(0).toUpperCase();
+            document.getElementById('header-username').innerText = nombre;
+
+            fetch('menu.html?v=8').then(res => res.text()).then(html => {
+                document.getElementById('sidebar').innerHTML = html;
+                configurarPermisosMenu();
+                lucide.createIcons();
+                document.getElementById('link-asignacion')?.classList.add('active');
+            });
+            document.getElementById('toggle-menu').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
+            
+            await cargarDatos();
+        });
+
+        async function cargarDatos() {
+            try {
+                const snapUsers = await db.collection("usuarios").get();
+                const snapProy = await db.collection("proyectos").get();
+                let proyectos = [];
+                snapProy.forEach(doc => proyectos.push({ id: doc.id, nombre: doc.data().proyecto || 'Sin nombre' }));
+
+                const tbody = document.getElementById('tabla-asignacion');
+                tbody.innerHTML = '';
+
+                if (snapUsers.empty) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">No hay usuarios registrados.</td></tr>`;
+                    return;
+                }
+
+                snapUsers.forEach(docU => {
+                    const userData = docU.data();
+                    const userId = docU.id;
+                    const userName = userData.nombre || userId;
+                    const asignados = userData.proyectos_asignados || [];
+
+                    const tr = document.createElement('tr');
+                    let selectsHtml = '';
+                    for (let i = 0; i < 5; i++) {
+                        selectsHtml += `<td>
+                            <select class="form-select-asig" data-user="${userId}" data-slot="${i}" onchange="guardarAsignacion('${userId}')">
+                                <option value="">- Sin asignar -</option>
+                                ${proyectos.map(p => `<option value="${p.id}" ${asignados[i] === p.id ? 'selected' : ''}>${p.nombre}</option>`).join('')}
+                            </select>
+                        </td>`;
+                    }
+                    tr.innerHTML = `<td style="font-weight: 600;">${userName}</td>${selectsHtml}`;
+                    tbody.appendChild(tr);
+                });
+
+            } catch (e) { console.error(e); }
+        }
+
+        async function guardarAsignacion(userId) {
+            try {
+                const selects = document.querySelectorAll(`.form-select-asig[data-user="${userId}"]`);
+                let nuevosProyectos = [];
+                selects.forEach(s => { if(s.value) nuevosProyectos.push(s.value); });
+                
+                await db.collection("usuarios").doc(userId).set({
+                    proyectos_asignados: nuevosProyectos
+                }, { merge: true });
+                
+                console.log("Asignación guardada para", userId);
+            } catch (e) {
+                console.error("Error guardando asignación:", e);
+            }
+        }
+    </script>
+</body>
+</html>
