@@ -35,13 +35,20 @@
         .date-asign { font-size: 10px; color: var(--text-muted); margin-top: 4px; display: block; }
         .btn-delete-user { background: none; border: none; color: var(--danger); cursor: pointer; padding: 5px; display: inline-flex; align-items: center; }
         
+        /* BOTÓN FLOTANTE EDITAR */
         .fab-edit { position: fixed; bottom: 30px; right: 30px; background: var(--danger); color: white; border: none; border-radius: 50px; padding: 15px 25px; display: flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 999; font-weight: 700; font-family: 'Inter', sans-serif; font-size: 14px; transition: transform 0.2s; }
         .fab-edit:hover { background: #b91c1c; transform: scale(1.05); }
 
-        /* Alerta Personalizada */
-        #custom-alert { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
-        .modal-card-alert { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 400px; text-align: center; }
-        #alert-btn { width: 100%; padding: 12px; border-radius: 8px; border: none; color: white; background: var(--primary-blue); font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 15px;}
+        /* MODAL DE CONFIRMACIÓN Y ALERTA (Estilo VISANTIC) */
+        #custom-confirm, #custom-alert { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 10001; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .modal-card-confirm, .modal-card-alert { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .confirm-icon { width: 50px; height: 50px; background: #fee2e2; color: var(--danger); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px auto; }
+        #confirm-title, #alert-title { margin: 0 0 8px 0; font-size: 18px; color: var(--text-main); font-weight: 700; }
+        #confirm-msg, #alert-msg { margin: 0 0 24px 0; font-size: 14px; color: var(--text-muted); line-height: 1.5; }
+        .confirm-actions { display: flex; gap: 12px; }
+        #confirm-cancel { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: #f8fafc; color: #334155; font-weight: 700; font-size: 14px; cursor: pointer; }
+        #confirm-ok { flex: 1; padding: 12px; border-radius: 8px; border: none; color: white; background: var(--danger); font-weight: 700; font-size: 14px; cursor: pointer; }
+        #alert-btn { width: 100%; padding: 12px; border-radius: 8px; border: none; color: white; background: var(--primary-blue); font-weight: 700; font-size: 14px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -93,6 +100,20 @@
         <i data-lucide="edit"></i> Editar
     </button>
 
+    <!-- VENTANA DE CONFIRMACIÓN PERSONALIZADA -->
+    <div id="custom-confirm">
+        <div class="modal-card-confirm">
+            <div class="confirm-icon"><i data-lucide="alert-triangle" style="width: 28px; height: 28px;"></i></div>
+            <h3 id="confirm-title">¿Eliminar?</h3>
+            <p id="confirm-msg">¿Seguro que deseas eliminar este usuario?</p>
+            <div class="confirm-actions">
+                <button id="confirm-cancel">Cancelar</button>
+                <button id="confirm-ok">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VENTANA DE ALERTA PERSONALIZADA -->
     <div id="custom-alert">
         <div class="modal-card-alert">
             <h3 id="alert-title" style="margin:0 0 8px 0;font-size:18px;color:#1e293b;font-weight:700;"></h3>
@@ -135,13 +156,27 @@
             document.getElementById('custom-alert').style.display = 'flex'; 
         }
 
+        function showConfirm(title, msg, onConfirm) {
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-msg').innerText = msg;
+            document.getElementById('custom-confirm').style.display = 'flex';
+            lucide.createIcons();
+            document.getElementById('confirm-ok').onclick = function() {
+                document.getElementById('custom-confirm').style.display = 'none';
+                onConfirm();
+            };
+            document.getElementById('confirm-cancel').onclick = function() {
+                document.getElementById('custom-confirm').style.display = 'none';
+            };
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             if(!localStorage.getItem('usuario')) { window.location.href = 'index.html'; return; }
             const nombre = localStorage.getItem('nombre') || 'Usuario';
             document.getElementById('user-initial').innerText = nombre.charAt(0).toUpperCase();
             document.getElementById('header-username').innerText = nombre;
 
-            fetch('menu.html?v=10').then(res => res.text()).then(html => {
+            fetch('menu.html?v=11').then(res => res.text()).then(html => {
                 document.getElementById('sidebar').innerHTML = html;
                 configurarPermisosMenu();
                 lucide.createIcons();
@@ -210,7 +245,7 @@
                 
                 if (isDuplicate) {
                     showAlert("Proyecto Duplicado", "No puedes asignar el mismo proyecto dos veces al mismo usuario.");
-                    currentSelect.value = ''; // Resetear
+                    currentSelect.value = '';
                     return;
                 }
             }
@@ -227,7 +262,7 @@
                 });
                 btn.innerHTML = '<i data-lucide="edit"></i> Editar';
                 btn.style.background = '#dc2626';
-                cargarData(); // Recargar para mostrar fechas
+                cargarDatos();
             } else {
                 document.querySelectorAll('.form-select-asig').forEach(s => s.disabled = false);
                 btn.innerHTML = '<i data-lucide="save"></i> Guardar';
@@ -262,7 +297,6 @@
                 }, { merge: true });
                 
                 showAlert("Éxito", "Asignación guardada correctamente.");
-                // Volver a bloquear el que se acaba de asignar
                 const currentSelect = document.querySelector(`.form-select-asig[data-user="${userId}"][data-slot="${slotIndex}"]`);
                 if(currentSelect.value !== '') currentSelect.disabled = true;
             } catch (e) {
@@ -270,16 +304,16 @@
             }
         }
 
-        async function eliminarUsuario(userId) {
-            if (confirm(`¿Seguro que deseas eliminar a este usuario (${userId}) de la base de datos?`)) {
+        function eliminarUsuario(userId) {
+            showConfirm("Eliminar Usuario", `¿Seguro que deseas eliminar a este usuario (${userId}) de la base de datos?`, async () => {
                 try {
                     await db.collection("usuarios").doc(userId).delete();
-                    showAlert("Éxito", "Usuario eliminado.");
+                    showAlert("Éxito", "Usuario eliminado correctamente.");
                     cargarDatos();
                 } catch (e) {
                     showAlert("Error", "No se pudo eliminar: " + e.message);
                 }
-            }
+            });
         }
     </script>
 </body>
