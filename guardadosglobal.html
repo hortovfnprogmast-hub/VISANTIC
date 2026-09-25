@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Guardados Global | VISANTIC</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+        :root { --primary-blue: #058EA6; --light-blue: #e0f2fe; --bg-color: #f8fafc; --text-main: #1e293b; --text-muted: #64748b; --border-color: #e2e8f0; --danger: #dc2626; }
+        body { margin: 0; font-family: 'Inter', sans-serif; background-color: var(--bg-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: white; border-bottom: 1px solid var(--border-color); z-index: 50; }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .menu-btn { background: none; border: none; cursor: pointer; color: var(--text-main); }
+        .header-title { margin: 0; font-size: 15px; font-weight: 700; color: var(--primary-blue); }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .user-initial { width: 35px; height: 35px; border-radius: 50%; background-color: var(--primary-blue); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
+        .main-layout { display: flex; flex: 1; overflow: hidden; }
+        .sidebar { width: 260px; background: white; border-right: 1px solid var(--border-color); overflow-y: auto; transition: transform 0.3s ease; display: flex; flex-direction: column; position: fixed; height: calc(100vh - 60px); z-index: 40; }
+        @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); } }
+        .content { flex: 1; padding: 20px; overflow-y: auto; margin-left: 0; width: 100%; }
+        @media (min-width: 769px) { .content { margin-left: 260px; } }
+        .container { max-width: 1200px; margin: 0 auto; padding-bottom: 80px; }
+        .global-filters { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .global-filters input { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; }
+        .data-table-container { background: #FFFFFF; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border: 1px solid var(--border-color); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: center; }
+        thead { background: var(--light-blue); border-bottom: 1px solid var(--border-color); }
+        th, td { padding: 12px 15px; font-size: 14px; color: var(--text-main); }
+        tbody tr { border-bottom: 1px solid #f1f5f9; }
+        .btn-edit { background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; margin: 2px; text-decoration: none; }
+        .fab-delete { position: fixed; bottom: 30px; right: 30px; background: var(--danger); color: white; border: none; border-radius: 50px; padding: 15px 25px; display: flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 999; font-weight: 700; font-family: 'Inter', sans-serif; font-size: 14px; transition: transform 0.2s; }
+        .fab-delete:hover { background: #b91c1c; transform: scale(1.05); }
+        #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 10001; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .modal-card-confirm { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .confirm-icon { width: 50px; height: 50px; background: #fee2e2; color: var(--danger); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px auto; }
+        #confirm-title { margin: 0 0 8px 0; font-size: 18px; color: var(--text-main); font-weight: 700; }
+        #confirm-msg { margin: 0 0 24px 0; font-size: 14px; color: var(--text-muted); line-height: 1.5; }
+        .confirm-actions { display: flex; gap: 12px; }
+        #confirm-cancel { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: #f8fafc; color: #334155; font-weight: 700; font-size: 14px; cursor: pointer; }
+        #confirm-ok { flex: 1; padding: 12px; border-radius: 8px; border: none; color: white; background: var(--danger); font-weight: 700; font-size: 14px; cursor: pointer; }
+        #custom-alert { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .modal-card-alert { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 400px; text-align: center; }
+        #alert-btn { width: 100%; padding: 12px; border-radius: 8px; border: none; color: white; background: var(--primary-blue); font-weight: 700; font-size: 14px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-btn" id="toggle-menu"><i data-lucide="menu"></i></button>
+            <img src="https://i.ibb.co/8ng1078m/LOGOTIPO.png" alt="Logo VISANTIC" style="height: 35px; object-fit: contain;">
+            <h1 class="header-title">Guardados Global</h1>
+        </div>
+        <div class="header-right">
+            <div class="user-initial" id="user-initial">U</div>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <aside class="sidebar" id="sidebar"></aside>
+        <main class="content">
+            <div class="container">
+                <div class="global-filters">
+                    <input type="text" id="filter-text" placeholder="Buscar por folio, proyecto, cliente..." style="flex: 1; min-width: 200px;">
+                    <input type="date" id="filter-date">
+                </div>
+
+                <div class="data-table-container">
+                    <table>
+                        <thead><tr><th style="width:40px;"><input type="checkbox" id="check-all-rep" onclick="toggleAllRep(this)"></th><th>Folio</th><th>Proyecto</th><th>Fecha</th><th>Acción</th></tr></thead>
+                        <tbody id="tabla-mis-ordenes"><tr><td colspan="5" style="padding: 30px; color: var(--text-muted);">Cargando...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <button class="fab-delete" onclick="eliminarReportesSeleccionados()">
+        <i data-lucide="trash-2" style="width: 20px; height: 20px;"></i> Eliminar
+    </button>
+
+    <div id="custom-confirm">
+        <div class="modal-card-confirm">
+            <div class="confirm-icon"><i data-lucide="alert-triangle" style="width: 28px; height: 28px;"></i></div>
+            <h3 id="confirm-title">¿Eliminar?</h3>
+            <p id="confirm-msg">¿Seguro que deseas eliminar los elementos seleccionados?</p>
+            <div class="confirm-actions">
+                <button id="confirm-cancel">Cancelar</button>
+                <button id="confirm-ok">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="custom-alert">
+        <div class="modal-card-alert">
+            <h3 id="alert-title" style="margin:0 0 8px 0;font-size:18px;color:#1e293b;font-weight:700;"></h3>
+            <p id="alert-msg" style="margin:0 0 24px 0;font-size:14px;color:#64748b;"></p>
+            <button id="alert-btn" onclick="document.getElementById('custom-alert').style.display='none'">Aceptar</button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjlemFwGQbA3mM7UhOZAVGaam1z1Xixr8",
+            authDomain: "loretoapp-2ca14.firebaseapp.com",
+            projectId: "loretoapp-2ca14",
+            storageBucket: "loretoapp-2ca14.firebasestorage.app",
+            messagingSenderId: "794212467801",
+            appId: "1:794212467801:web:f0bf6fd01579f0aec35d48"
+        };
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        const db = firebase.firestore();
+
+        let misOrdenes = [];
+
+        function configurarPermisosMenu() {
+            const privilegio = localStorage.getItem('privilegio');
+            const menuMisReportes = document.getElementById('menu-mis-reportes');
+            const menuAdmin = document.getElementById('menu-administracion');
+            const menuGlobal = document.getElementById('menu-reportes-compania');
+            if (privilegio === '1') {
+                if(menuMisReportes) menuMisReportes.style.display = 'none';
+                if(menuAdmin) menuAdmin.style.display = 'block';
+                if(menuGlobal) menuGlobal.style.display = 'block';
+            } else {
+                if(menuMisReportes) menuMisReportes.style.display = 'block';
+                if(menuAdmin) menuAdmin.style.display = 'none';
+                if(menuGlobal) menuGlobal.style.display = 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if(!localStorage.getItem('usuario')) { window.location.href = 'index.html'; return; }
+            const nombre = localStorage.getItem('nombre') || 'Usuario';
+            document.getElementById('user-initial').innerText = nombre.charAt(0).toUpperCase();
+
+            fetch('menu.html?v=11').then(res => res.text()).then(html => {
+                document.getElementById('sidebar').innerHTML = html;
+                configurarPermisosMenu();
+                lucide.createIcons();
+                document.getElementById('link-global-guardados')?.classList.add('active');
+            });
+            document.getElementById('toggle-menu').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
+            
+            document.getElementById('filter-text').addEventListener('input', renderTablaMisOrdenes);
+            document.getElementById('filter-date').addEventListener('change', renderTablaMisOrdenes);
+
+            cargarMisOrdenes();
+            lucide.createIcons();
+        });
+
+        function showAlert(t, m) { 
+            document.getElementById('alert-title').innerText = t; 
+            document.getElementById('alert-msg').innerText = m; 
+            document.getElementById('custom-alert').style.display = 'flex'; 
+        }
+
+        function showConfirm(title, msg, onConfirm) {
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-msg').innerText = msg;
+            document.getElementById('custom-confirm').style.display = 'flex';
+            lucide.createIcons();
+            document.getElementById('confirm-ok').onclick = function() {
+                document.getElementById('custom-confirm').style.display = 'none';
+                onConfirm();
+            };
+            document.getElementById('confirm-cancel').onclick = function() {
+                document.getElementById('custom-confirm').style.display = 'none';
+            };
+        }
+
+        function cargarMisOrdenes() {
+            db.collection("reportes_semanales").where("estado", "==", "Borrador").get().then(q => {
+                misOrdenes = [];
+                q.forEach(d => { misOrdenes.push({ id_doc: d.id, ...d.data() }); });
+                misOrdenes.sort((a,b) => (b.fecha_creacion||"").localeCompare(a.fecha_creacion||""));
+                renderTablaMisOrdenes();
+            }).catch(e => {
+                console.error("Error cargando órdenes:", e);
+                document.getElementById('tabla-mis-ordenes').innerHTML = `<tr><td colspan="5" style="padding:30px;color:var(--danger)">Error al cargar (Revisa reglas de Firebase).</td></tr>`;
+            });
+        }
+
+        function toggleAllRep(source) {
+            document.querySelectorAll('.check-rep').forEach(cb => cb.checked = source.checked);
+        }
+
+        function renderTablaMisOrdenes() {
+            const t = document.getElementById('tabla-mis-ordenes'); t.innerHTML = '';
+            const searchText = document.getElementById('filter-text')?.value.toLowerCase() || '';
+            const filterDate = document.getElementById('filter-date')?.value || '';
+            
+            let filtered = misOrdenes.filter(o => {
+                if(searchText) { const text = `${o.folio} ${o.proyecto} ${o.cliente} ${o.fecha_hora}`.toLowerCase(); if (!text.includes(searchText)) return false; }
+                if(filterDate) { if (!o.fecha_creacion || !o.fecha_creacion.startsWith(filterDate)) return false; }
+                return true;
+            });
+            
+            if(filtered.length === 0) { t.innerHTML = `<tr><td colspan="5" style="padding:30px;color:var(--text-muted)">Sin reportes en esta sección</td></tr>`; return; }
+            filtered.forEach(o => {
+                let a = `<div style="display:flex;gap:5px;justify-content:center;">
+                    <a href="reporte_semanal.html?tab=nuevo&edit=${o.id_doc}" class="btn-edit"><i data-lucide="edit-2" style="width:14px"></i> Editar</a>
+                </div>`;
+                const r = document.createElement('tr');
+                r.innerHTML = `<td><input type="checkbox" class="check-rep" data-id="${o.id_doc}"></td><td style="font-weight:bold">${o.folio||''}</td><td>${o.proyecto||''}</td><td>${o.fecha_hora||''}</td><td>${a}</td>`;
+                t.appendChild(r);
+            });
+            lucide.createIcons();
+        }
+
+        function eliminarReportesSeleccionados() {
+            const checks = document.querySelectorAll('.check-rep:checked');
+            if (checks.length === 0) { 
+                showConfirm("Atención", "Selecciona al menos un reporte para eliminar.", () => {}); 
+                return; 
+            }
+            showConfirm(`Eliminar ${checks.length} reporte(s)`, "Esta acción no se puede deshacer. ¿Deseas continuar?", async () => {
+                try {
+                    for (let check of checks) {
+                        await db.collection("reportes_semanales").doc(check.dataset.id).delete();
+                    }
+                    showAlert("Éxito", "Reportes eliminados.", true);
+                    cargarMisOrdenes();
+                } catch (e) { 
+                    showAlert("Error", "No se pudo eliminar: " + e.message, false); 
+                }
+            });
+        }
+    </script>
+</body>
+</html>
