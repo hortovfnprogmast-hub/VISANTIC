@@ -35,9 +35,13 @@
         .date-asign { font-size: 10px; color: var(--text-muted); margin-top: 4px; display: block; }
         .btn-delete-user { background: none; border: none; color: var(--danger); cursor: pointer; padding: 5px; display: inline-flex; align-items: center; }
         
-        /* BOTÓN FLOTANTE EDITAR */
         .fab-edit { position: fixed; bottom: 30px; right: 30px; background: var(--danger); color: white; border: none; border-radius: 50px; padding: 15px 25px; display: flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 999; font-weight: 700; font-family: 'Inter', sans-serif; font-size: 14px; transition: transform 0.2s; }
         .fab-edit:hover { background: #b91c1c; transform: scale(1.05); }
+
+        /* Alerta Personalizada */
+        #custom-alert { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .modal-card-alert { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 400px; text-align: center; }
+        #alert-btn { width: 100%; padding: 12px; border-radius: 8px; border: none; color: white; background: var(--primary-blue); font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 15px;}
     </style>
 </head>
 <body>
@@ -60,7 +64,7 @@
             <div class="container">
                 <div style="margin-bottom: 24px;">
                     <h1 style="font-size: 24px; font-weight: bold; margin: 0; color: var(--text-main);">Asignar Proyectos a Usuarios</h1>
-                    <p style="color: var(--text-muted); margin: 5px 0 0 0;">Los proyectos ya asignados se bloquean. Da clic en "Editar" para modificarlos.</p>
+                    <p style="color: var(--text-muted); margin: 5px 0 0 0;">Los proyectos ya asignados se bloquean. Da clic en "Editar" para modificarlos. Si hay usuarios fantasma, usa el bote de basura rojo para borrarlos.</p>
                 </div>
 
                 <div class="table-container">
@@ -73,7 +77,7 @@
                                 <th>Proyecto 3</th>
                                 <th>Proyecto 4</th>
                                 <th>Proyecto 5</th>
-                                <th style="width: 40px;"></th>
+                                <th style="width: 40px;">Borrar</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-asignacion">
@@ -88,6 +92,14 @@
     <button class="fab-edit" id="fab-edit-btn" onclick="toggleEditMode()">
         <i data-lucide="edit"></i> Editar
     </button>
+
+    <div id="custom-alert">
+        <div class="modal-card-alert">
+            <h3 id="alert-title" style="margin:0 0 8px 0;font-size:18px;color:#1e293b;font-weight:700;"></h3>
+            <p id="alert-msg" style="margin:0 0 24px 0;font-size:14px;color:#64748b;"></p>
+            <button id="alert-btn" onclick="document.getElementById('custom-alert').style.display='none'">Aceptar</button>
+        </div>
+    </div>
 
     <script>
         const firebaseConfig = {
@@ -117,20 +129,25 @@
             }
         }
 
+        function showAlert(t, m) { 
+            document.getElementById('alert-title').innerText = t; 
+            document.getElementById('alert-msg').innerText = m; 
+            document.getElementById('custom-alert').style.display = 'flex'; 
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             if(!localStorage.getItem('usuario')) { window.location.href = 'index.html'; return; }
             const nombre = localStorage.getItem('nombre') || 'Usuario';
             document.getElementById('user-initial').innerText = nombre.charAt(0).toUpperCase();
             document.getElementById('header-username').innerText = nombre;
 
-            fetch('menu.html?v=9').then(res => res.text()).then(html => {
+            fetch('menu.html?v=10').then(res => res.text()).then(html => {
                 document.getElementById('sidebar').innerHTML = html;
                 configurarPermisosMenu();
                 lucide.createIcons();
                 document.getElementById('link-asignacion')?.classList.add('active');
             });
             document.getElementById('toggle-menu').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
-            
             await cargarDatos();
         });
 
@@ -161,17 +178,17 @@
                     for (let i = 0; i < 5; i++) {
                         const projId = asignados[i] || '';
                         const fecha = fechas[i] || '';
-                        const isDisabled = projId !== ''; // Bloquear si ya tiene proyecto
+                        const isDisabled = projId !== '';
 
                         selectsHtml += `<td>
-                            <select class="form-select-asig" data-user="${userId}" data-slot="${i}" data-oldval="${projId}" ${isDisabled ? 'disabled' : ''} onchange="guardarAsignacion('${userId}')">
+                            <select class="form-select-asig" data-user="${userId}" data-slot="${i}" data-oldval="${projId}" ${isDisabled ? 'disabled' : ''} onchange="checkAndSave('${userId}', ${i})">
                                 <option value="">- Sin asignar -</option>
                                 ${proyectos.map(p => `<option value="${p.id}" ${projId === p.id ? 'selected' : ''}>${p.nombre}</option>`).join('')}
                             </select>
                             ${fecha ? `<span class="date-asign">Asignado: ${new Date(fecha).toLocaleString('es-MX')}</span>` : ''}
                         </td>`;
                     }
-                    tr.innerHTML = `<td style="font-weight: 600;">${userName}</td>${selectsHtml}<td><button class="btn-delete-user" onclick="eliminarUsuario('${userId}')"><i data-lucide="trash-2" style="width:16px"></i></button></td>`;
+                    tr.innerHTML = `<td style="font-weight: 600;">${userName}</td>${selectsHtml}<td><button class="btn-delete-user" onclick="eliminarUsuario('${userId}')"><i data-lucide="trash-2" style="width:18px;height:18px"></i></button></td>`;
                     tbody.appendChild(tr);
                 });
                 lucide.createIcons();
@@ -179,28 +196,47 @@
             } catch (e) { console.error(e); }
         }
 
+        function checkAndSave(userId, slotIndex) {
+            const currentSelect = document.querySelector(`.form-select-asig[data-user="${userId}"][data-slot="${slotIndex}"]`);
+            const selectedValue = currentSelect.value;
+            
+            if (selectedValue) {
+                let isDuplicate = false;
+                document.querySelectorAll(`.form-select-asig[data-user="${userId}"]`).forEach(s => {
+                    if (s.dataset.slot !== String(slotIndex) && s.value === selectedValue) {
+                        isDuplicate = true;
+                    }
+                });
+                
+                if (isDuplicate) {
+                    showAlert("Proyecto Duplicado", "No puedes asignar el mismo proyecto dos veces al mismo usuario.");
+                    currentSelect.value = ''; // Resetear
+                    return;
+                }
+            }
+            guardarAsignacion(userId, slotIndex);
+        }
+
         function toggleEditMode() {
             const btn = document.getElementById('fab-edit-btn');
             const isEditMode = btn.innerText.includes('Guardar');
             
             if (isEditMode) {
-                // Cambiar a modo lectura (bloquear los que tienen proyecto)
                 document.querySelectorAll('.form-select-asig').forEach(s => {
                     if(s.value !== '') s.disabled = true;
                 });
                 btn.innerHTML = '<i data-lucide="edit"></i> Editar';
-                btn.style.background = '#dc2626'; // Rojo
-                cargarDatos(); // Recargar para mostrar fechas actualizadas
+                btn.style.background = '#dc2626';
+                cargarData(); // Recargar para mostrar fechas
             } else {
-                // Cambiar a modo edición (desbloquear todo)
                 document.querySelectorAll('.form-select-asig').forEach(s => s.disabled = false);
                 btn.innerHTML = '<i data-lucide="save"></i> Guardar';
-                btn.style.background = '#10b981'; // Verde
+                btn.style.background = '#10b981';
             }
             lucide.createIcons();
         }
 
-        async function guardarAsignacion(userId) {
+        async function guardarAsignacion(userId, slotIndex) {
             try {
                 const selects = document.querySelectorAll(`.form-select-asig[data-user="${userId}"]`);
                 let nuevosProyectos = [];
@@ -211,10 +247,9 @@
                     if(s.value) {
                         nuevosProyectos.push(s.value);
                         let oldVal = s.dataset.oldval || '';
-                        // Si es un proyecto nuevo o no tenía fecha, guardar la fecha actual
                         if(s.value !== oldVal || !s.dataset.date) {
                             nuevasFechas.push(now);
-                            s.dataset.oldval = s.value; // Actualizar valor viejo
+                            s.dataset.oldval = s.value;
                         } else {
                             nuevasFechas.push(s.dataset.date || now);
                         }
@@ -226,21 +261,23 @@
                     fechas_asignacion: nuevasFechas
                 }, { merge: true });
                 
-                console.log("Asignación guardada para", userId);
+                showAlert("Éxito", "Asignación guardada correctamente.");
+                // Volver a bloquear el que se acaba de asignar
+                const currentSelect = document.querySelector(`.form-select-asig[data-user="${userId}"][data-slot="${slotIndex}"]`);
+                if(currentSelect.value !== '') currentSelect.disabled = true;
             } catch (e) {
-                console.error("Error guardando asignación:", e);
-                alert("Error al guardar: " + e.message);
+                showAlert("Error", "No se pudo guardar: " + e.message);
             }
         }
 
         async function eliminarUsuario(userId) {
-            if (confirm(`¿Seguro que deseas eliminar a este usuario (${userId})?`)) {
+            if (confirm(`¿Seguro que deseas eliminar a este usuario (${userId}) de la base de datos?`)) {
                 try {
                     await db.collection("usuarios").doc(userId).delete();
-                    alert("Usuario eliminado.");
+                    showAlert("Éxito", "Usuario eliminado.");
                     cargarDatos();
                 } catch (e) {
-                    alert("Error: " + e.message);
+                    showAlert("Error", "No se pudo eliminar: " + e.message);
                 }
             }
         }
