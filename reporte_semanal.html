@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Reporte Semanal | VISANTIC</title>
-    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <!-- AGREGADO Firebase Storage para subir fotos y no exceder el límite de 1MB -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
     <style>
@@ -22,23 +20,16 @@
         .header-right { display: flex; align-items: center; gap: 12px; }
         .user-name-top { font-weight: 800; color: var(--primary-blue); font-size: 15px; text-transform: uppercase; white-space: nowrap; }
         .user-initial { width: 35px; height: 35px; border-radius: 50%; background-color: var(--primary-blue); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
-        .user-dropdown { position: absolute; top: 60px; right: 15px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid var(--border-color); width: 220px; z-index: 1000; display: none; overflow: hidden; }
-        .user-dropdown.show { display: block; }
-        .user-card { padding: 15px; border-bottom: 1px solid #f1f5f9; }
-        .user-meta .user-name { font-weight: 700; font-size: 14px; color: var(--text-main); }
-        .user-actions .dropdown-link { display: flex; align-items: center; gap: 8px; padding: 12px 15px; color: var(--danger); font-size: 14px; text-decoration: none; font-weight: 500; }
         .main-layout { display: flex; flex: 1; overflow: hidden; }
         .sidebar { width: 260px; background: white; border-right: 1px solid var(--border-color); overflow-y: auto; transition: transform 0.3s ease; display: flex; flex-direction: column; }
         @media (max-width: 768px) { .sidebar { position: fixed; height: calc(100vh - 60px); transform: translateX(-100%); z-index: 40; } .sidebar.open { transform: translateX(0); } .header-title { display: none; } }
         .content { flex: 1; padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .container { max-width: 900px; margin: 0 auto; padding-bottom: 50px; }
-        
+        .container { max-width: 900px; margin: 0 auto; padding-bottom: 80px; } /* Padding extra para botón flotante */
         .tabs-container { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
         .tab-btn { background: #eef1f6; border: none; padding: 10px 20px; border-radius: 25px; font-size: 14px; font-weight: 600; color: #555; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; white-space: nowrap; }
         .tab-btn.active { background: var(--primary-blue) !important; color: #ffffff !important; }
         .tab-badge { background: #d1d5db; color: #555; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
         .tab-btn.active .tab-badge { background: #ffffff; color: var(--primary-blue); }
-
         .form-card { background: #FFFFFF; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 4px 10px rgba(0,0,0,0.03); margin-bottom: 24px; padding: 24px; }
         .section-title-form { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 700; color: var(--primary-blue); margin: 0 0 20px 0; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
         .form-group { margin-bottom: 16px; }
@@ -57,26 +48,26 @@
         .photo-slot { aspect-ratio: 1; border: 2px dashed #d1d5db; border-radius: 8px; background: #f9fafb; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; }
         .photo-slot img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
         .remove-photo { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.6); color: white; border-radius: 50%; width: 24px; height: 24px; text-align: center; line-height: 22px; cursor: pointer; font-size: 16px; font-weight: bold; z-index: 10; }
-        
         .global-filters { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
         .global-filters input { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; }
-
         .data-table-container { background: #FFFFFF; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border: 1px solid var(--border-color); overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; text-align: center; }
         thead { background: var(--light-blue); border-bottom: 1px solid var(--border-color); }
         th, td { padding: 12px 15px; font-size: 14px; color: var(--text-main); }
         tbody tr { border-bottom: 1px solid #f1f5f9; }
-        .btn-edit { background: var(--success); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; }
-        .btn-pdf { background: var(--primary-blue); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; }
-
+        .btn-edit { background: var(--success); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; margin: 2px; }
+        .btn-pdf { background: var(--primary-blue); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; margin: 2px; }
         #camera-overlay { display: none; position: fixed !important; z-index: 999999 !important; left: 0 !important; top: 0 !important; width: 100vw !important; height: 100vh !important; background-color: rgba(0,0,0,0.95) !important; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
         #camera-overlay.show { display: flex !important; }
         #camera-stream { width: 100%; max-width: 600px; aspect-ratio: 4/3; background: black; border-radius: 12px; overflow: hidden; position: relative; }
         #camera-video { width: 100%; height: 100%; object-fit: cover; }
-
         #custom-alert { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
         .modal-card-alert { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 400px; text-align: center; }
         #alert-btn { width: 100%; padding: 12px; border-radius: 8px; border: none; color: white; background: var(--primary-blue); font-weight: 700; font-size: 14px; cursor: pointer; }
+        
+        /* BOTÓN FLOTANTE PARA ELIMINAR */
+        .fab-delete { position: fixed; bottom: 30px; right: 30px; background: var(--danger); color: white; border: none; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 999; transition: transform 0.2s; }
+        .fab-delete:hover { background: #b91c1c; transform: scale(1.1); }
     </style>
 </head>
 <body>
@@ -115,8 +106,8 @@
                 <div id="dashboard-ordenes" style="display: none;">
                     <div class="data-table-container">
                         <table>
-                            <thead><tr><th>Folio</th><th>Proyecto</th><th>Fecha</th><th>Acción</th></tr></thead>
-                            <tbody id="tabla-mis-ordenes"><tr><td colspan="4" style="padding: 30px; color: var(--text-muted);">Cargando...</td></tr></tbody>
+                            <thead><tr><th style="width:40px;"><input type="checkbox" id="check-all-rep" onclick="toggleAllRep(this)"></th><th>Folio</th><th>Proyecto</th><th>Fecha</th><th>Acción</th></tr></thead>
+                            <tbody id="tabla-mis-ordenes"><tr><td colspan="5" style="padding: 30px; color: var(--text-muted);">Cargando...</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -174,6 +165,10 @@
         </div>
     </div>
 
+    <button class="fab-delete" onclick="eliminarReportesSeleccionados()" title="Eliminar Seleccionados">
+        <i data-lucide="trash-2" style="width: 24px; height: 24px;"></i>
+    </button>
+
     <input type="file" id="fileInputGlobal" accept="image/*" multiple style="display:none" onchange="processFile(this)">
     <canvas id="tempCanvas" style="display:none"></canvas>
     <div id="custom-alert"><div class="modal-card-alert"><h3 id="alert-title" style="margin:0 0 8px 0;font-size:18px;color:var(--text-main);font-weight:700;"></h3><p id="alert-msg" style="margin:0 0 24px 0;font-size:14px;color:var(--text-muted);"></p><button id="alert-btn" onclick="closeAlert()">Aceptar</button></div></div>
@@ -189,7 +184,7 @@
         };
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.firestore();
-        const storage = firebase.storage(); // Inicializado Storage
+        const storage = firebase.storage();
 
         let fotos = [null, null, null, null, null, null];
         let proyectosCache = {};
@@ -235,7 +230,7 @@
                 document.getElementById('filter-text').addEventListener('input', renderTablaMisOrdenes);
                 document.getElementById('filter-date').addEventListener('change', renderTablaMisOrdenes);
             }
-            fetch('menu.html?v=7').then(res => res.text()).then(html => {
+            fetch('menu.html?v=8').then(res => res.text()).then(html => {
                 document.getElementById('sidebar').innerHTML = html;
                 configurarPermisosMenu();
                 lucide.createIcons();
@@ -261,15 +256,25 @@
 
         async function cargarProyectos() {
             try {
+                const usuarioId = localStorage.getItem('usuario');
+                const userDoc = await db.collection("usuarios").doc(usuarioId).get();
+                let asignados = [];
+                if (userDoc.exists && userDoc.data().proyectos_asignados) {
+                    asignados = userDoc.data().proyectos_asignados;
+                }
+                
                 const snap = await db.collection("proyectos").get();
                 const select = document.getElementById('proyecto-select');
                 snap.forEach(doc => {
                     const p = doc.data();
-                    proyectosCache[doc.id] = p;
-                    const option = document.createElement('option');
-                    option.value = doc.id;
-                    option.innerText = p.proyecto || 'Sin nombre';
-                    select.appendChild(option);
+                    // Si el admin no ha asignado proyectos (asignados vacío), muestra todos. Si hay asignados, filtra.
+                    if (asignados.length === 0 || asignados.includes(doc.id)) {
+                        proyectosCache[doc.id] = p;
+                        const option = document.createElement('option');
+                        option.value = doc.id;
+                        option.innerText = p.proyecto || 'Sin nombre';
+                        select.appendChild(option);
+                    }
                 });
             } catch (e) { console.error(e); }
         }
@@ -362,7 +367,7 @@
                 if(tabActual !== 'Nuevo reporte') renderTablaMisOrdenes();
             }).catch(e => {
                 console.error("Error cargando órdenes:", e);
-                document.getElementById('tabla-mis-ordenes').innerHTML = `<tr><td colspan="4" style="padding:30px;color:var(--danger)">Error al cargar (Revisa reglas de Firebase).</td></tr>`;
+                document.getElementById('tabla-mis-ordenes').innerHTML = `<tr><td colspan="5" style="padding:30px;color:var(--danger)">Error al cargar (Revisa reglas de Firebase).</td></tr>`;
             });
         }
 
@@ -382,6 +387,10 @@
             else { document.getElementById('ordenMttoForm').style.display = 'none'; document.getElementById('dashboard-ordenes').style.display = 'block'; renderTablaMisOrdenes(); }
         }
 
+        function toggleAllRep(source) {
+            document.querySelectorAll('.check-rep').forEach(cb => cb.checked = source.checked);
+        }
+
         function renderTablaMisOrdenes() {
             const t = document.getElementById('tabla-mis-ordenes'); t.innerHTML = '';
             const searchText = document.getElementById('filter-text')?.value.toLowerCase() || '';
@@ -394,11 +403,15 @@
                 if(filterDate) { if (!o.fecha_creacion || !o.fecha_creacion.startsWith(filterDate)) return false; }
                 return true;
             });
-            if(filtered.length === 0) { t.innerHTML = `<tr><td colspan="4" style="padding:30px;color:var(--text-muted)">Sin reportes en esta sección</td></tr>`; return; }
+            if(filtered.length === 0) { t.innerHTML = `<tr><td colspan="5" style="padding:30px;color:var(--text-muted)">Sin reportes en esta sección</td></tr>`; return; }
             filtered.forEach(o => {
-                let a = o.estado === 'Borrador' ? (scope === 'global' ? `<span style="color:var(--text-muted)">Solo lectura</span>` : `<button type="button" onclick="cargarBorrador('${o.id_doc}')" class="btn-edit"><i data-lucide="edit-2" style="width:14px"></i> Editar</button>`) : `<button type="button" onclick="verPDFOrden('${o.id_doc}')" class="btn-pdf"><i data-lucide="file-text" style="width:14px"></i> PDF</button>`;
+                // Botones de Editar y PDF (si ya está realizado)
+                let a = `<div style="display:flex;gap:5px;justify-content:center;">
+                    <button type="button" onclick="cargarBorrador('${o.id_doc}')" class="btn-edit"><i data-lucide="edit-2" style="width:14px"></i> Editar</button>
+                    ${o.estado === 'En proceso' ? `<button type="button" onclick="verPDFOrden('${o.id_doc}')" class="btn-pdf"><i data-lucide="file-text" style="width:14px"></i> PDF</button>` : ''}
+                </div>`;
                 const r = document.createElement('tr');
-                r.innerHTML = `<td style="font-weight:bold">${o.folio||''}</td><td>${o.proyecto||''}</td><td>${o.fecha_hora||''}</td><td>${a}</td>`;
+                r.innerHTML = `<td><input type="checkbox" class="check-rep" data-id="${o.id_doc}"></td><td style="font-weight:bold">${o.folio||''}</td><td>${o.proyecto||''}</td><td>${o.fecha_hora||''}</td><td>${a}</td>`;
                 t.appendChild(r);
             });
             lucide.createIcons();
@@ -462,17 +475,14 @@
 
                 if(estado === 'En proceso') { gps = await getGPS(); }
 
-                // --- SUBIR IMÁGENES A FIREBASE STORAGE PARA EVITAR EL LÍMITE DE 1MB ---
                 btnGuardar.disabled = true; btnEnviar.disabled = true;
                 btnGuardar.innerText = 'Subiendo imágenes...'; btnEnviar.innerText = 'Subiendo imágenes...';
 
                 let fotosURLs = [];
                 for (let i = 0; i < fotosValidas.length; i++) {
                     if(fotosValidas[i].startsWith('http')) {
-                        // Si ya es una URL (ej. editando un borrador), no la subas de nuevo
                         fotosURLs.push(fotosValidas[i]);
                     } else {
-                        // Es Base64, la subimos a Storage
                         const storageRef = storage.ref();
                         const fileRef = storageRef.child(`reportes_fotos/${Date.now()}_${i}.jpg`);
                         const snapshot = await fileRef.putString(fotosValidas[i], 'data_url');
@@ -506,8 +516,14 @@
                 if(estado === 'En proceso') {
                     const datosPDF = { ...dataToSave, ubicacion_gps: gps };
                     localStorage.setItem('DatosReportePDF', JSON.stringify(datosPDF));
-                    showAlert("Éxito", "Reporte enviado. Generando PDF...", true);
-                    setTimeout(() => { window.open('PDFdereporsem.html', '_blank'); cargarMisOrdenes(); cambiarTab('Realizados'); }, 1500);
+                    showAlert("Procesando", "Reporte enviado. Preparando PDF, espera 3 segundos...", true);
+                    
+                    // RETRASO DE 3 SEGUNDOS PARA EVITAR PANTALLA BLANCA
+                    setTimeout(() => { 
+                        window.open('PDFdereporsem.html', '_blank'); 
+                        cargarMisOrdenes(); 
+                        cambiarTab('Realizados'); 
+                    }, 3000);
                 } else {
                     showAlert("Éxito", "Borrador guardado correctamente.", true);
                     setTimeout(() => { cargarMisOrdenes(); cambiarTab('Guardados'); }, 1000);
@@ -521,6 +537,20 @@
                 btnEnviar.innerHTML = '<i data-lucide="send"></i> Enviar Reporte';
                 lucide.createIcons();
             }
+        }
+
+        async function eliminarReportesSeleccionados() {
+            const checks = document.querySelectorAll('.check-rep:checked');
+            if (checks.length === 0) { showAlert("Atención", "Selecciona al menos un reporte para eliminar.", false); return; }
+            if (!confirm(`¿Seguro que deseas eliminar ${checks.length} reporte(s)?`)) return;
+
+            try {
+                for (let check of checks) {
+                    await db.collection("reportes_semanales").doc(check.dataset.id).delete();
+                }
+                showAlert("Éxito", "Reportes eliminados.", true);
+                cargarMisOrdenes();
+            } catch (e) { showAlert("Error", "No se pudo eliminar: " + e.message, false); }
         }
 
         function verPDFOrden(id) {
