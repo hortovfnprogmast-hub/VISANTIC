@@ -53,8 +53,6 @@
         .photo-slot { aspect-ratio: 1; border: 2px dashed #d1d5db; border-radius: 8px; background: #f9fafb; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; }
         .photo-slot img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
         .remove-photo { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.6); color: white; border-radius: 50%; width: 24px; height: 24px; text-align: center; line-height: 22px; cursor: pointer; font-size: 16px; font-weight: bold; z-index: 10; }
-        .global-filters { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-        .global-filters input { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; }
         .data-table-container { background: #FFFFFF; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border: 1px solid var(--border-color); overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; text-align: center; }
         thead { background: var(--light-blue); border-bottom: 1px solid var(--border-color); }
@@ -69,12 +67,8 @@
         #custom-alert { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 10000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
         .modal-card-alert { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 400px; text-align: center; }
         #alert-btn { width: 100%; padding: 12px; border-radius: 8px; border: none; color: white; background: var(--primary-blue); font-weight: 700; font-size: 14px; cursor: pointer; }
-        
-        /* BOTÓN FLOTANTE CON TEXTO */
         .fab-delete { position: fixed; bottom: 30px; right: 30px; background: var(--danger); color: white; border: none; border-radius: 50px; padding: 15px 25px; display: flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 999; font-weight: 700; font-family: 'Inter', sans-serif; font-size: 14px; transition: transform 0.2s; }
         .fab-delete:hover { background: #b91c1c; transform: scale(1.05); }
-
-        /* MODAL DE CONFIRMACIÓN */
         #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 10001; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
         .modal-card-confirm { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         .confirm-icon { width: 50px; height: 50px; background: #fee2e2; color: var(--danger); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px auto; }
@@ -111,11 +105,6 @@
                     <button class="tab-btn active" onclick="cambiarTab('Nuevo reporte')" id="tab-Nuevo reporte"><i data-lucide="plus-circle" style="width: 16px;"></i> Nuevo reporte</button>
                     <button class="tab-btn" onclick="cambiarTab('Guardados')" id="tab-Guardados">Guardados <span class="tab-badge" id="badge-Borrador">0</span></button>
                     <button class="tab-btn" onclick="cambiarTab('Realizados')" id="tab-Realizados">Realizados <span class="tab-badge" id="badge-Realizado">0</span></button>
-                </div>
-
-                <div id="global-filters" class="global-filters" style="display: none;">
-                    <input type="text" id="filter-text" placeholder="Buscar por folio, proyecto, cliente..." style="flex: 1; min-width: 200px;">
-                    <input type="date" id="filter-date">
                 </div>
 
                 <div id="dashboard-ordenes" style="display: none;">
@@ -221,10 +210,8 @@
         let currentStream;
         
         const urlParams = new URLSearchParams(window.location.search);
-        const scope = urlParams.get('scope') || 'user'; 
         const initialTab = urlParams.get('tab') || 'nuevo';
-        const projectFilter = urlParams.get('proyecto') || '';
-        const editIdParam = urlParams.get('edit') || ''; // NUEVO: Leer si vamos a editar
+        const editIdParam = urlParams.get('edit') || '';
         let initialTabName = 'Nuevo reporte';
         if(initialTab === 'guardados') initialTabName = 'Guardados';
         if(initialTab === 'realizados') initialTabName = 'Realizados';
@@ -251,29 +238,15 @@
             document.getElementById('user-initial-header').innerText = nombre.charAt(0).toUpperCase();
             document.getElementById('user-dropdown-name').innerText = nombre;
             document.getElementById('fecha-hora').value = new Date().toLocaleString('es-MX');
+            document.getElementById('header-username').innerText = nombre;
             
-            if(scope === 'global') {
-                document.getElementById('header-title').innerText = "Reportes de la Compañía";
-                document.getElementById('header-username').style.display = 'none';
-                document.getElementById('global-filters').style.display = 'flex';
-                document.getElementById('filter-text').addEventListener('input', renderTablaMisOrdenes);
-                document.getElementById('filter-date').addEventListener('change', renderTablaMisOrdenes);
-            } else {
-                document.getElementById('header-username').innerText = nombre;
-            }
-            
-            fetch('menu.html?v=10').then(res => res.text()).then(html => {
+            fetch('menu.html?v=11').then(res => res.text()).then(html => {
                 document.getElementById('sidebar').innerHTML = html;
                 configurarPermisosMenu();
                 lucide.createIcons();
-                if(scope === 'global') {
-                    if(initialTab === 'guardados') document.getElementById('link-global-guardados')?.classList.add('active');
-                    if(initialTab === 'realizados') document.getElementById('link-global-realizados')?.classList.add('active');
-                } else {
-                    if(initialTab === 'nuevo') document.getElementById('link-reporte-semanal')?.classList.add('active');
-                    if(initialTab === 'guardados') document.getElementById('link-guardados')?.classList.add('active');
-                    if(initialTab === 'realizados') document.getElementById('link-realizados')?.classList.add('active');
-                }
+                if(initialTab === 'nuevo') document.getElementById('link-reporte-semanal')?.classList.add('active');
+                if(initialTab === 'guardados') document.getElementById('link-guardados')?.classList.add('active');
+                if(initialTab === 'realizados') document.getElementById('link-realizados')?.classList.add('active');
             });
             document.getElementById('toggle-menu').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
             window.addEventListener('click', (e) => { if (!e.target.matches('#user-initial-header')) { const dd = document.getElementById('user-dropdown'); if(dd.classList.contains('show')) dd.classList.remove('show'); } });
@@ -283,9 +256,8 @@
             cambiarTab(initialTabName);
             lucide.createIcons();
 
-            // SI VIENE DE UNA EDICIÓN GLOBAL, CARGAR EL REPORTE
             if (editIdParam) {
-                cargarBorrador(editIdParam);
+                await cargarBorrador(editIdParam);
             }
         });
 
@@ -408,9 +380,7 @@
         }
 
         function cargarMisOrdenes() {
-            let query = db.collection("reportes_semanales");
-            if (scope !== 'global') { query = query.where("residente_id", "==", localStorage.getItem('usuario')); }
-            query.get().then(q => {
+            db.collection("reportes_semanales").where("residente_id", "==", localStorage.getItem('usuario')).get().then(q => {
                 misOrdenes = [];
                 q.forEach(d => { misOrdenes.push({ id_doc: d.id, ...d.data() }); });
                 misOrdenes.sort((a,b) => (b.fecha_creacion||"").localeCompare(a.fecha_creacion||""));
@@ -430,7 +400,6 @@
         }
 
         function cambiarTab(e, isEdit=false) {
-            if (e === 'Nuevo reporte' && scope === 'global' && !isEdit) { window.location.href = 'reporte_semanal.html?tab=nuevo'; return; }
             tabActual = e;
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             const a = document.getElementById(`tab-${e}`); if(a) a.classList.add('active');
@@ -444,25 +413,15 @@
 
         function renderTablaMisOrdenes() {
             const t = document.getElementById('tabla-mis-ordenes'); t.innerHTML = '';
-            const searchText = document.getElementById('filter-text')?.value.toLowerCase() || '';
-            const filterDate = document.getElementById('filter-date')?.value || '';
             let filtered = misOrdenes.filter(o => {
                 if(tabActual === 'Guardados' && o.estado !== 'Borrador') return false;
                 if(tabActual === 'Realizados' && o.estado !== 'En proceso') return false;
-                if(projectFilter && o.proyecto !== projectFilter) return false;
-                if(searchText) { const text = `${o.folio} ${o.proyecto} ${o.cliente} ${o.fecha_hora}`.toLowerCase(); if (!text.includes(searchText)) return false; }
-                if(filterDate) { if (!o.fecha_creacion || !o.fecha_creacion.startsWith(filterDate)) return false; }
                 return true;
             });
             if(filtered.length === 0) { t.innerHTML = `<tr><td colspan="5" style="padding:30px;color:var(--text-muted)">Sin reportes en esta sección</td></tr>`; return; }
             filtered.forEach(o => {
-                // Si es global, el botón Editar manda a la vista de usuario con el ID
-                const editAction = scope === 'global' 
-                    ? `window.location.href='reporte_semanal.html?tab=nuevo&edit=${o.id_doc}'` 
-                    : `cargarBorrador('${o.id_doc}')`;
-                
                 let a = `<div style="display:flex;gap:5px;justify-content:center;">
-                    <button type="button" onclick="${editAction}" class="btn-edit"><i data-lucide="edit-2" style="width:14px"></i> Editar</button>
+                    <button type="button" onclick="cargarBorrador('${o.id_doc}')" class="btn-edit"><i data-lucide="edit-2" style="width:14px"></i> Editar</button>
                     ${o.estado === 'En proceso' ? `<button type="button" onclick="verPDFOrden('${o.id_doc}')" class="btn-pdf"><i data-lucide="file-text" style="width:14px"></i> PDF</button>` : ''}
                 </div>`;
                 const r = document.createElement('tr');
@@ -481,54 +440,37 @@
             renderSlots();
         }
 
-        // FUNCIÓN INTELIGENTE QUE CARGA EL REPORTE Y LAS FOTOS
         async function cargarBorrador(id) {
             let o = misOrdenes.find(x => x.id_doc === id);
-            
-            // Si no está en memoria (ej. admin editando global), búscalo en Firebase
             if (!o) {
                 try {
                     const doc = await db.collection("reportes_semanales").doc(id).get();
-                    if (doc.exists) {
-                        o = { id_doc: doc.id, ...doc.data() };
-                    } else {
-                        showAlert("Error", "No se encontró el reporte.", false);
-                        return;
-                    }
-                } catch (e) {
-                    showAlert("Error", "Error al cargar el reporte.", false);
-                    return;
-                }
+                    if (doc.exists) o = { id_doc: doc.id, ...doc.data() };
+                    else { showAlert("Error", "No se encontró el reporte."); return; }
+                } catch(e) { showAlert("Error", "Error al cargar."); return; }
             }
-            
             cambiarTab('Nuevo reporte', true);
             document.getElementById('doc-id-actual').value = o.id_doc;
             
-            // Asegurar que el proyecto exista en el menú desplegable (si es que no estaba asignado al admin)
             if (!proyectosCache[o.id_proyecto]) {
-                try {
-                    const projDoc = await db.collection("proyectos").doc(o.id_proyecto).get();
-                    if (projDoc.exists) {
-                        proyectosCache[o.id_proyecto] = projDoc.data();
-                        const select = document.getElementById('proyecto-select');
-                        if (![...select.options].some(opt => opt.value === o.id_proyecto)) {
-                            const option = document.createElement('option');
-                            option.value = o.id_proyecto;
-                            option.innerText = proyectosCache[o.id_proyecto].proyecto || 'Sin nombre';
-                            select.appendChild(option);
-                        }
+                const projDoc = await db.collection("proyectos").doc(o.id_proyecto).get();
+                if (projDoc.exists) {
+                    proyectosCache[o.id_proyecto] = projDoc.data();
+                    const select = document.getElementById('proyecto-select');
+                    if (![...select.options].some(opt => opt.value === o.id_proyecto)) {
+                        const option = document.createElement('option');
+                        option.value = o.id_proyecto;
+                        option.innerText = proyectosCache[o.id_proyecto].proyecto || 'Sin nombre';
+                        select.appendChild(option);
                     }
-                } catch (e) { console.error("Error cargando proyecto para editar:", e); }
+                }
             }
-            
             document.getElementById('proyecto-select').value = o.id_proyecto || '';
             document.getElementById('proyecto-select').dispatchEvent(new Event('change'));
             document.getElementById('folio-reporte').value = o.folio || '';
             document.getElementById('fecha-hora').value = o.fecha_hora || '';
             document.getElementById('frente-trabajo').value = o.frente_trabajo || '';
             document.getElementById('descripcion').value = o.descripcion || '';
-            
-            // CARGAR LAS FOTOS EN LOS RECUADROS
             fotos = o.fotos && o.fotos.length ? [...o.fotos] : [];
             while(fotos.length < 6) fotos.push(null);
             renderSlots();
@@ -635,7 +577,6 @@
                 showConfirm("Atención", "Selecciona al menos un reporte para eliminar.", () => {}); 
                 return; 
             }
-            
             showConfirm(`Eliminar ${checks.length} reporte(s)`, "Esta acción no se puede deshacer. ¿Deseas continuar?", async () => {
                 try {
                     for (let check of checks) {
