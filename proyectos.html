@@ -32,13 +32,16 @@
         tbody tr { border-bottom: 1px solid #f1f5f9; }
         tbody tr:hover { background-color: #f8fafc; }
         .badge-count { background: var(--primary-blue); color: white; padding: 4px 12px; border-radius: 12px; font-weight: 700; font-size: 12px; text-decoration: none; display: inline-block; }
-        .btn-edit-red { background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; text-decoration: none; }
         
-        /* BOTÓN FLOTANTE CON TEXTO */
+        /* BOTONES DE ACCIÓN INLINE */
+        .action-buttons { display: flex; gap: 8px; justify-content: center; align-items: center; }
+        .btn-edit-red { background: var(--danger); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; text-decoration: none; }
+        .btn-delete-inline { background: #f8fafc; color: var(--danger); border: 1px solid #fecaca; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; text-decoration: none; }
+        .btn-delete-inline:hover { background: #fee2e2; }
+
+        /* BOTÓN FLOTANTE Y MODAL */
         .fab-delete { position: fixed; bottom: 30px; right: 30px; background: var(--danger); color: white; border: none; border-radius: 50px; padding: 15px 25px; display: flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 999; font-weight: 700; font-family: 'Inter', sans-serif; font-size: 14px; transition: transform 0.2s; }
         .fab-delete:hover { background: #b91c1c; transform: scale(1.05); }
-
-        /* MODAL DE CONFIRMACIÓN PERSONALIZADO */
         #custom-confirm { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 10001; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
         .modal-card-confirm { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         .confirm-icon { width: 50px; height: 50px; background: #fee2e2; color: var(--danger); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px auto; }
@@ -81,7 +84,6 @@
                     <table>
                         <thead>
                             <tr>
-                                <th style="width: 40px;"><input type="checkbox" id="check-all-proy" onclick="toggleAll(this)"></th>
                                 <th>Cliente</th>
                                 <th>Proyecto</th>
                                 <th>Inicio</th>
@@ -91,7 +93,7 @@
                             </tr>
                         </thead>
                         <tbody id="tabla-proyectos">
-                            <tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">Cargando proyectos...</td></tr>
+                            <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Cargando proyectos...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -100,7 +102,7 @@
     </div>
 
     <button class="fab-delete" onclick="eliminarProyectosSeleccionados()">
-        <i data-lucide="trash-2" style="width: 20px; height: 20px;"></i> Eliminar
+        <i data-lucide="trash-2" style="width: 20px; height: 20px;"></i> Eliminar Selección
     </button>
 
     <div id="custom-confirm">
@@ -149,21 +151,16 @@
             document.getElementById('user-initial').innerText = nombre.charAt(0).toUpperCase();
             document.getElementById('header-username').innerText = nombre;
 
-            fetch('menu.html?v=9').then(res => res.text()).then(html => {
+            fetch('menu.html?v=10').then(res => res.text()).then(html => {
                 document.getElementById('sidebar').innerHTML = html;
                 configurarPermisosMenu();
                 lucide.createIcons();
                 document.getElementById('link-proyectos')?.classList.add('active');
             });
             document.getElementById('toggle-menu').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
-            
             cargarDatos();
             lucide.createIcons();
         });
-
-        function toggleAll(source) {
-            document.querySelectorAll('.check-proy').forEach(cb => cb.checked = source.checked);
-        }
 
         function showConfirm(title, msg, onConfirm) {
             document.getElementById('confirm-title').innerText = title;
@@ -196,7 +193,7 @@
                 tbody.innerHTML = '';
 
                 if (proyectos.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">No hay proyectos.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">No hay proyectos.</td></tr>`;
                     return;
                 }
 
@@ -204,7 +201,6 @@
                     const numRep = conteoReportes[p.proyecto] || 0;
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td><input type="checkbox" class="check-proy" data-id="${p.id}"></td>
                         <td>${p.cliente || ''}</td>
                         <td style="font-weight: 600;">${p.proyecto || ''}</td>
                         <td>${p.fecha_inicio || ''}</td>
@@ -212,8 +208,11 @@
                         <td style="text-align: center;">
                             <a href="reporte_semanal.html?tab=realizados&scope=global&proyecto=${encodeURIComponent(p.proyecto)}" class="badge-count">${numRep}</a>
                         </td>
-                        <td style="text-align: center;">
-                            <a href="proyectonuevo.html?edit=${p.id}" class="btn-edit-red"><i data-lucide="edit"></i> Editar</a>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="proyectonuevo.html?edit=${p.id}" class="btn-edit-red"><i data-lucide="edit"></i> Editar</a>
+                                <button onclick="eliminarProyectoIndividual('${p.id}')" class="btn-delete-inline"><i data-lucide="trash-2"></i> Eliminar</button>
+                            </div>
                         </td>
                     `;
                     tbody.appendChild(tr);
@@ -223,17 +222,15 @@
         }
 
         function eliminarProyectosSeleccionados() {
-            const checks = document.querySelectorAll('.check-proy:checked');
-            if (checks.length === 0) { 
-                showConfirm("Atención", "Selecciona al menos un proyecto para eliminar.", () => {}); 
-                return; 
-            }
-            
-            showConfirm(`Eliminar ${checks.length} proyecto(s)`, "Esta acción no se puede deshacer. ¿Deseas continuar?", async () => {
+            // Esta función ahora se usa si volvemos a poner checkboxes, pero como pusimos botón inline, la dejo por si acaso.
+            // En este caso no hay checkboxes en la tabla, así que eliminamos directamente.
+            showConfirm("Eliminar selección", "Para eliminar, usa el botón rojo 'Eliminar' en la fila del proyecto.", () => {});
+        }
+
+        function eliminarProyectoIndividual(id) {
+            showConfirm("Eliminar Proyecto", "¿Seguro que deseas eliminar este proyecto? Esta acción no se puede deshacer.", async () => {
                 try {
-                    for (let check of checks) {
-                        await db.collection("proyectos").doc(check.dataset.id).delete();
-                    }
+                    await db.collection("proyectos").doc(id).delete();
                     cargarDatos();
                 } catch (e) { 
                     showConfirm("Error", "No se pudo eliminar: " + e.message, () => {}); 
