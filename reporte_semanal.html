@@ -224,6 +224,7 @@
         const scope = urlParams.get('scope') || 'user'; 
         const initialTab = urlParams.get('tab') || 'nuevo';
         const projectFilter = urlParams.get('proyecto') || '';
+        const editIdParam = urlParams.get('edit') || ''; // NUEVO: Leer si vamos a editar
         let initialTabName = 'Nuevo reporte';
         if(initialTab === 'guardados') initialTabName = 'Guardados';
         if(initialTab === 'realizados') initialTabName = 'Realizados';
@@ -244,14 +245,13 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             if(!localStorage.getItem('usuario')) { window.location.href = 'index.html'; return; }
             const nombre = localStorage.getItem('nombre') || 'Usuario';
             document.getElementById('user-initial-header').innerText = nombre.charAt(0).toUpperCase();
             document.getElementById('user-dropdown-name').innerText = nombre;
             document.getElementById('fecha-hora').value = new Date().toLocaleString('es-MX');
             
-            // LÓGICA GLOBAL VS USUARIO
             if(scope === 'global') {
                 document.getElementById('header-title').innerText = "Reportes de la Compañía";
                 document.getElementById('header-username').style.display = 'none';
@@ -277,10 +277,16 @@
             });
             document.getElementById('toggle-menu').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
             window.addEventListener('click', (e) => { if (!e.target.matches('#user-initial-header')) { const dd = document.getElementById('user-dropdown'); if(dd.classList.contains('show')) dd.classList.remove('show'); } });
-            cargarProyectos();
+            
+            await cargarProyectos();
             cargarMisOrdenes();
             cambiarTab(initialTabName);
             lucide.createIcons();
+
+            // SI VIENE DE UNA EDICIÓN GLOBAL, CARGAR EL REPORTE
+            if (editIdParam) {
+                cargarBorrador(editIdParam);
+            }
         });
 
         function showAlert(t, m) { document.getElementById('alert-title').innerText = t; document.getElementById('alert-msg').innerText = m; document.getElementById('custom-alert').style.display = 'flex'; }
@@ -424,11 +430,11 @@
         }
 
         function cambiarTab(e, isEdit=false) {
-            if (e === 'Nuevo reporte' && scope === 'global') { window.location.href = 'reporte_semanal.html?tab=nuevo'; return; }
+            if (e === 'Nuevo reporte' && scope === 'global' && !isEdit) { window.location.href = 'reporte_semanal.html?tab=nuevo'; return; }
             tabActual = e;
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             const a = document.getElementById(`tab-${e}`); if(a) a.classList.add('active');
-            if(e === 'Nuevo reporte') { document.getElementById('dashboard-ordenes').style.display = 'none'; document.getElementById('ordenMttoForm').style.display = 'block'; if(!isEdit) limpiarFormulario(); } 
+            if(e === 'Nuevo reporte') { document.getElementById('dashboard-ordenes').style.display = 'none'; document.getElementById('ordenMttoForm').style.display = 'block'; if(!isEdit && !editIdParam) limpiarFormulario(); } 
             else { document.getElementById('ordenMttoForm').style.display = 'none'; document.getElementById('dashboard-ordenes').style.display = 'block'; renderTablaMisOrdenes(); }
         }
 
@@ -450,8 +456,13 @@
             });
             if(filtered.length === 0) { t.innerHTML = `<tr><td colspan="5" style="padding:30px;color:var(--text-muted)">Sin reportes en esta sección</td></tr>`; return; }
             filtered.forEach(o => {
+                // Si es global, el botón Editar manda a la vista de usuario con el ID
+                const editAction = scope === 'global' 
+                    ? `window.location.href='reporte_semanal.html?tab=nuevo&edit=${o.id_doc}'` 
+                    : `cargarBorrador('${o.id_doc}')`;
+                
                 let a = `<div style="display:flex;gap:5px;justify-content:center;">
-                    <button type="button" onclick="cargarBorrador('${o.id_doc}')" class="btn-edit"><i data-lucide="edit-2" style="width:14px"></i> Editar</button>
+                    <button type="button" onclick="${editAction}" class="btn-edit"><i data-lucide="edit-2" style="width:14px"></i> Editar</button>
                     ${o.estado === 'En proceso' ? `<button type="button" onclick="verPDFOrden('${o.id_doc}')" class="btn-pdf"><i data-lucide="file-text" style="width:14px"></i> PDF</button>` : ''}
                 </div>`;
                 const r = document.createElement('tr');
@@ -470,17 +481,54 @@
             renderSlots();
         }
 
-        function cargarBorrador(id) {
-            const o = misOrdenes.find(x => x.id_doc === id);
-            if(!o) return;
+        // FUNCIÓN INTELIGENTE QUE CARGA EL REPORTE Y LAS FOTOS
+        async function cargarBorrador(id) {
+            let o = misOrdenes.find(x => x.id_doc === id);
+            
+            // Si no está en memoria (ej. admin editando global), búscalo en Firebase
+            if (!o) {
+                try {
+                    const doc = await db.collection("reportes_semanales").doc(id).get();
+                    if (doc.exists) {
+                        o = { id_doc: doc.id, ...doc.data() };
+                    } else {
+                        showAlert("Error", "No se encontró el reporte.", false);
+                        return;
+                    }
+                } catch (e) {
+                    showAlert("Error", "Error al cargar el reporte.", false);
+                    return;
+                }
+            }
+            
             cambiarTab('Nuevo reporte', true);
             document.getElementById('doc-id-actual').value = o.id_doc;
+            
+            // Asegurar que el proyecto exista en el menú desplegable (si es que no estaba asignado al admin)
+            if (!proyectosCache[o.id_proyecto]) {
+                try {
+                    const projDoc = await db.collection("proyectos").doc(o.id_proyecto).get();
+                    if (projDoc.exists) {
+                        proyectosCache[o.id_proyecto] = projDoc.data();
+                        const select = document.getElementById('proyecto-select');
+                        if (![...select.options].some(opt => opt.value === o.id_proyecto)) {
+                            const option = document.createElement('option');
+                            option.value = o.id_proyecto;
+                            option.innerText = proyectosCache[o.id_proyecto].proyecto || 'Sin nombre';
+                            select.appendChild(option);
+                        }
+                    }
+                } catch (e) { console.error("Error cargando proyecto para editar:", e); }
+            }
+            
             document.getElementById('proyecto-select').value = o.id_proyecto || '';
             document.getElementById('proyecto-select').dispatchEvent(new Event('change'));
             document.getElementById('folio-reporte').value = o.folio || '';
             document.getElementById('fecha-hora').value = o.fecha_hora || '';
             document.getElementById('frente-trabajo').value = o.frente_trabajo || '';
             document.getElementById('descripcion').value = o.descripcion || '';
+            
+            // CARGAR LAS FOTOS EN LOS RECUADROS
             fotos = o.fotos && o.fotos.length ? [...o.fotos] : [];
             while(fotos.length < 6) fotos.push(null);
             renderSlots();
