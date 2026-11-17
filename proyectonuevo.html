@@ -124,7 +124,7 @@
             const menuAdmin = document.getElementById('menu-administracion');
             const menuGlobal = document.getElementById('menu-reportes-compania');
             if (privilegio === '1') {
-                if(menuMisReportes) menuMisReportes.style.display = 'none';
+                if(menuMisReportes) menuMisReportes.style.display = 'block';
                 if(menuAdmin) menuAdmin.style.display = 'block';
                 if(menuGlobal) menuGlobal.style.display = 'block';
             } else {
@@ -139,7 +139,7 @@
             const nombre = localStorage.getItem('nombre') || 'Usuario';
             document.getElementById('user-initial').innerText = nombre.charAt(0).toUpperCase();
             document.getElementById('header-username').innerText = nombre;
-            fetch('menu.html?v=11').then(res => res.text()).then(html => {
+            fetch('menu.html?v=12').then(res => res.text()).then(html => {
                 document.getElementById('sidebar').innerHTML = html;
                 configurarPermisosMenu(); lucide.createIcons();
                 document.getElementById('link-nuevo-proyecto')?.classList.add('active');
