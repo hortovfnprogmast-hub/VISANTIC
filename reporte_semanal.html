@@ -190,13 +190,14 @@
         if(initialTab === 'guardados') initialTabName = 'Guardados';
         if(initialTab === 'realizados') initialTabName = 'Realizados';
 
+        // ADMINISTRADOR (Privilegio 1) VE TODOS LOS MENÚS
         function configurarPermisosMenu() {
             const privilegio = localStorage.getItem('privilegio');
             const menuMisReportes = document.getElementById('menu-mis-reportes');
             const menuAdmin = document.getElementById('menu-administracion');
             const menuGlobal = document.getElementById('menu-reportes-compania');
             if (privilegio === '1') {
-                if(menuMisReportes) menuMisReportes.style.display = 'none';
+                if(menuMisReportes) menuMisReportes.style.display = 'block';
                 if(menuAdmin) menuAdmin.style.display = 'block';
                 if(menuGlobal) menuGlobal.style.display = 'block';
             } else {
@@ -213,7 +214,7 @@
             document.getElementById('user-dropdown-name').innerText = nombre;
             document.getElementById('fecha-hora').value = new Date().toLocaleString('es-MX');
             document.getElementById('header-username').innerText = nombre;
-            fetch('menu.html?v=11').then(res => res.text()).then(html => {
+            fetch('menu.html?v=12').then(res => res.text()).then(html => {
                 document.getElementById('sidebar').innerHTML = html;
                 configurarPermisosMenu(); lucide.createIcons();
                 if(initialTab === 'nuevo') document.getElementById('link-reporte-semanal')?.classList.add('active');
@@ -265,10 +266,7 @@
             if(id && proyectosCache[id]) {
                 document.getElementById('ubicacion-input').value = proyectosCache[id].direccion_completa || 'Sin dirección';
                 document.getElementById('proyecto-id').value = id;
-            } else {
-                document.getElementById('ubicacion-input').value = '';
-                document.getElementById('proyecto-id').value = '';
-            }
+            } else { document.getElementById('ubicacion-input').value = ''; document.getElementById('proyecto-id').value = ''; }
         });
 
         function triggerFile() { if(fotos.filter(f => f !== null).length < 6) document.getElementById('fileInputGlobal').click(); else showAlert("Límite", "Máximo 6 fotos.", false); }
@@ -322,10 +320,7 @@
                 if(fotos[i]) {
                     s.innerHTML = `<img src="${fotos[i]}" style="width:100%;height:100%;object-fit:cover;border-radius:8px"><span class="remove-photo" onclick="removeFoto(${i})">&times;</span>`;
                     s.style.border = "1px solid var(--border-color)";
-                } else {
-                    s.innerHTML = `<i data-lucide="image" style="color:#ccc;width:30px;height:30px"></i>`;
-                    s.style.border = "2px dashed #d1d5db";
-                }
+                } else { s.innerHTML = `<i data-lucide="image" style="color:#ccc;width:30px;height:30px"></i>`; s.style.border = "2px dashed #d1d5db"; }
             }
             lucide.createIcons();
         }
